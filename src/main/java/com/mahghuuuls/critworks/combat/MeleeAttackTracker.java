@@ -31,6 +31,8 @@ import java.util.Map;
  * cooldown resets), the crit event decides its one result and removes the vanilla crit, the hurt
  * events of the primary target and every sweep target are multiplied, and the damage events decide
  * which targets were hit. A swing closes at the player's next swing or at the end of the server tick.
+ * A combat mod's attacks (RLCombat) come through the same events; its {@link MeleeAttackSource} gives
+ * their hand and charge.
  */
 public final class MeleeAttackTracker {
 
@@ -40,13 +42,16 @@ public final class MeleeAttackTracker {
     private final CritSettings settings;
     private final HitResolver hitResolver;
     private final DiagnosticLog diagnostics;
+    private final MeleeAttackSource source;
     private final Map<EntityPlayer, MeleeAttack> open = new HashMap<EntityPlayer, MeleeAttack>();
 
-    public MeleeAttackTracker(StatResolver resolver, CritSettings settings, CritFeedback feedback, DiagnosticLog diagnostics) {
+    public MeleeAttackTracker(StatResolver resolver, CritSettings settings, CritFeedback feedback, DiagnosticLog diagnostics,
+                              MeleeAttackSource source) {
         this.resolver = resolver;
         this.settings = settings;
         this.hitResolver = new HitResolver(feedback);
         this.diagnostics = diagnostics;
+        this.source = source;
     }
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
@@ -56,9 +61,21 @@ public final class MeleeAttackTracker {
             return;
         }
         close(player);
-        ItemStack weapon = player.getHeldItemMainhand();
-        float charge = player.getCooledAttackStrength(0.5F);
-        open.put(player, new MeleeAttack(player, weapon, EnumHand.MAIN_HAND, charge, event.getTarget()));
+        EnumHand hand = EnumHand.MAIN_HAND;
+        float charge;
+        if (source.owns(event)) {
+            hand = source.handOf(event);
+            if (hand == null) {
+                // The combat mod's integration is off: its attack keeps its own behavior.
+                return;
+            }
+            // The combat mod gives the attacking hand's charge with its crit event.
+            charge = Float.NaN;
+        } else {
+            charge = player.getCooledAttackStrength(0.5F);
+        }
+        ItemStack weapon = player.getHeldItem(hand);
+        open.put(player, new MeleeAttack(player, weapon, hand, charge, event.getTarget()));
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
@@ -71,9 +88,15 @@ public final class MeleeAttackTracker {
         if (attack == null || attack.isResolved() || attack.primaryTarget != event.getTarget()) {
             return;
         }
+        float charge = source.owns(event) ? source.chargeOf(event) : attack.getCharge();
+        if (Float.isNaN(charge)) {
+            // The combat mod's integration turned off during this attack: the attack keeps its own behavior.
+            open.remove(player);
+            return;
+        }
         CritProfile profile = resolver.resolve(player, attack.weapon, attack.hand);
         Entity target = event.getTarget();
-        String reason = AttackRules.problem(profile, attack.charge, settings.getMeleeChargeThreshold(),
+        String reason = AttackRules.problem(profile, charge, settings.getMeleeChargeThreshold(),
                 target instanceof EntityLivingBase, target instanceof EntityPlayer, settings.isPvpCrits());
         double roll = Double.NaN;
         boolean critical = false;
@@ -83,7 +106,7 @@ public final class MeleeAttackTracker {
         }
         boolean vanillaCritDenied = event.isVanillaCritical() || event.getResult() == Event.Result.ALLOW;
         event.setResult(Event.Result.DENY);
-        attack.resolve(profile, reason, roll, critical, vanillaCritDenied);
+        attack.resolve(profile, charge, reason, roll, critical, vanillaCritDenied);
     }
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
@@ -160,7 +183,7 @@ public final class MeleeAttackTracker {
                 .add("attacker", attack.attacker.getName())
                 .add("weapon", attack.weapon.isEmpty() ? "empty" : String.valueOf(attack.weapon.getItem().getRegistryName()))
                 .add("hand", attack.hand == EnumHand.MAIN_HAND ? "main" : "off")
-                .add("charge", attack.charge * 100.0D);
+                .add("charge", attack.getCharge() * 100.0D);
         String result;
         if (!attack.isEligible()) {
             result = "\"not eligible: " + attack.getIneligibleReason() + "\"";

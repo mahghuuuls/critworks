@@ -11,6 +11,8 @@ import com.mahghuuuls.critworks.config.SettingsReader;
 import com.mahghuuuls.critworks.config.WeaponRulesFile;
 import com.mahghuuuls.critworks.core.StatResolver;
 import com.mahghuuuls.critworks.diagnostics.DiagnosticLog;
+import com.mahghuuuls.critworks.integration.IntegrationGate;
+import com.mahghuuuls.critworks.integration.rlcombat.RLCombatAttacks;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.Mod;
@@ -54,12 +56,14 @@ public class CritworksMod {
         bonusCollector = new BonusCollector(LOGGER);
         resolver = new StatResolver(settings, new WeaponRulesFile(LOGGER).load(new File(configFolder, "critworks")),
                 bonusCollector);
-        CritFeedback feedback = CritFeedback.choose(settings, Loader.isModLoaded("bettercombatmod"), LOGGER);
+        IntegrationGate gate = new IntegrationGate(Loader::isModLoaded, settings, LOGGER::warn);
+        CritFeedback feedback = CritFeedback.choose(settings, gate.isLoaded(CritSettings.Integration.RLCOMBAT), LOGGER);
         DiagnosticLog diagnostics = new DiagnosticLog(LOGGER, settings.isDiagnosticMode());
-        meleeTracker = new MeleeAttackTracker(resolver, settings, feedback, diagnostics);
+        meleeTracker = new MeleeAttackTracker(resolver, settings, feedback, diagnostics, RLCombatAttacks.create(gate));
         MinecraftForge.EVENT_BUS.register(meleeTracker);
         if (diagnostics.isEnabled()) {
-            LOGGER.info("[diag] diagnostic mode on; crit sound {}", feedback.describeSound());
+            LOGGER.info("[diag] diagnostic mode on; crit sound {}; rlcombat integration {}", feedback.describeSound(),
+                    gate.isOn(CritSettings.Integration.RLCOMBAT) ? "on" : "off");
         }
     }
 

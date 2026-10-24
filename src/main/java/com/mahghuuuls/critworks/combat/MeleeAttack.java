@@ -12,17 +12,17 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * One melee swing: the weapon and charge read when it started, its single critical result, and what
- * happened to each target it hit. Lives for at most one server tick.
+ * One melee swing: the hand and weapon read when it started, its charge, its single critical result,
+ * and what happened to each target it hit. Lives for at most one server tick.
  */
 final class MeleeAttack {
 
     final EntityPlayer attacker;
     final ItemStack weapon;
     final EnumHand hand;
-    final float charge;
     final Entity primaryTarget;
 
+    private float charge;
     private boolean resolved;
     private CritProfile profile;
     private String ineligibleReason = "";
@@ -40,13 +40,23 @@ final class MeleeAttack {
         this.primaryTarget = primaryTarget;
     }
 
-    void resolve(CritProfile profile, String ineligibleReason, double roll, boolean critical, boolean vanillaCritDenied) {
+    /**
+     * @param charge NaN when the attack's combat mod gives the charge with its crit event instead
+     */
+    void resolve(CritProfile profile, float charge, String ineligibleReason, double roll, boolean critical,
+                 boolean vanillaCritDenied) {
         this.resolved = true;
+        this.charge = charge;
         this.profile = profile;
         this.ineligibleReason = ineligibleReason;
         this.roll = roll;
         this.critical = critical;
         this.vanillaCritDenied = vanillaCritDenied;
+    }
+
+    /** The charge (0 to 1) the attack was decided with; NaN until a combat mod's crit event gives it. */
+    float getCharge() {
+        return charge;
     }
 
     boolean isResolved() {
