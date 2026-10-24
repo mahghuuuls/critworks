@@ -65,6 +65,32 @@ class SettingsReaderTest {
     }
 
     @Test
+    void createdFileExplainsEverySetting() throws Exception {
+        File file = folder.resolve("critworks.cfg").toFile();
+        read(file);
+        String text = new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
+        String[] keys = {"fallbackChance", "fallbackDamage", "meleeChargeThreshold", "bowChargeThreshold", "damageCap",
+                "pvpCrits", "critSound", "diagnosticMode", "rlcombat", "jafs", "quark", "spartanweaponry", "qualitytools"};
+        String[] lines = text.split("\r?\n");
+        for (String key : keys) {
+            int index = -1;
+            for (int i = 0; i < lines.length; i++) {
+                if (lines[i].trim().startsWith("S:" + key + "=")) {
+                    index = i;
+                }
+            }
+            assertTrue(index > 0, key + " missing");
+            StringBuilder comment = new StringBuilder();
+            for (int i = index - 1; i >= 0 && lines[i].trim().startsWith("#"); i--) {
+                comment.insert(0, lines[i]);
+            }
+            assertTrue(comment.toString().contains("Default:"), key + " has no comment with its default");
+        }
+        assertTrue(text.contains("Range: 0 to 100"));
+        assertTrue(text.contains("Restart") || text.contains("restart"));
+    }
+
+    @Test
     void existingFileIsNeverRewritten() throws Exception {
         File file = write("    S:fallbackChance=abc\n    S:meleeChargeThreshold=150");
         byte[] before = Files.readAllBytes(file.toPath());
