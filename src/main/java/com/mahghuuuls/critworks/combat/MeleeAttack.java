@@ -30,7 +30,14 @@ final class MeleeAttack {
     private boolean critical;
     private boolean vanillaCritDenied;
     private boolean soundPlayed;
+    private String guaranteeId;
+    private boolean guaranteeUsed;
+    /** The attack integration that opened this attack, or null for a player's own swing. */
+    private String integrationId;
+    /** True while one of this swing's hits is between its hurt and its damage event. */
+    private boolean inHit;
     private final Map<Integer, TargetHit> hits = new LinkedHashMap<Integer, TargetHit>();
+    private final Map<Integer, TargetHit> reactionHits = new LinkedHashMap<Integer, TargetHit>();
 
     MeleeAttack(EntityPlayer attacker, ItemStack weapon, EnumHand hand, float charge, Entity primaryTarget) {
         this.attacker = attacker;
@@ -43,15 +50,59 @@ final class MeleeAttack {
     /**
      * @param charge NaN when the attack's combat mod gives the charge with its crit event instead
      */
-    void resolve(CritProfile profile, float charge, String ineligibleReason, double roll, boolean critical,
+    void resolve(CritProfile profile, float charge, String ineligibleReason, CritRoller.Decision decision,
                  boolean vanillaCritDenied) {
         this.resolved = true;
         this.charge = charge;
         this.profile = profile;
         this.ineligibleReason = ineligibleReason;
-        this.roll = roll;
-        this.critical = critical;
+        if (decision != null) {
+            this.roll = decision.roll;
+            this.critical = decision.critical;
+            this.guaranteeId = decision.guaranteeId;
+        }
         this.vanillaCritDenied = vanillaCritDenied;
+    }
+
+    void setInHit(boolean inHit) {
+        this.inHit = inHit;
+    }
+
+    boolean isInHit() {
+        return inHit;
+    }
+
+    void setIntegration(String id) {
+        this.integrationId = id;
+    }
+
+    boolean isIntegration() {
+        return integrationId != null;
+    }
+
+    String getIntegrationId() {
+        return integrationId;
+    }
+
+    boolean isGuaranteed() {
+        return guaranteeId != null;
+    }
+
+    String getGuaranteeId() {
+        return guaranteeId;
+    }
+
+    boolean isGuaranteeUsed() {
+        return guaranteeUsed;
+    }
+
+    /** Returns true the first time only, so a swing uses its guarantee once. */
+    boolean claimGuarantee() {
+        if (guaranteeUsed) {
+            return false;
+        }
+        guaranteeUsed = true;
+        return true;
     }
 
     /** The charge (0 to 1) the attack was decided with; NaN until a combat mod's crit event gives it. */
@@ -103,6 +154,17 @@ final class MeleeAttack {
             hits.put(target.getEntityId(), hit);
         }
         return hit;
+    }
+
+    /** The hit of an opted-in reaction on a target, kept apart from the attack's own hit on it. */
+    TargetHit reactionHitFor(EntityLivingBase target) {
+        TargetHit hit = new TargetHit(target, target == primaryTarget);
+        reactionHits.put(target.getEntityId(), hit);
+        return hit;
+    }
+
+    TargetHit takeReactionHit(EntityLivingBase target) {
+        return reactionHits.remove(target.getEntityId());
     }
 
     TargetHit existingHit(EntityLivingBase target) {

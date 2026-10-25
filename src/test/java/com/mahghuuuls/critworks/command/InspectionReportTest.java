@@ -68,4 +68,17 @@ class InspectionReportTest {
                 new InspectionReport.HandView("empty", CritProfile.notEligible("not a recognized weapon")));
         assertEquals("Main hand: Stick - eligible: pack rule #1 minecraft:stick", lines.get(3));
     }
+
+    @Test
+    void listsPendingGuaranteesInUseOrderWithTimeLeft() {
+        com.mahghuuuls.critworks.state.PlayerCritState state = new com.mahghuuuls.critworks.state.PlayerCritState();
+        state.grant(com.mahghuuuls.critworks.api.GuaranteeSpec.of("b").keptOnDeath());
+        state.grant(com.mahghuuuls.critworks.api.GuaranteeSpec.of("a").lasting(1200));
+        List<String> lines = InspectionReport.lines("Alex", CritFormula.NO_CAP, Collections.<Bonus>emptyList(),
+                new InspectionReport.HandView("empty", CritProfile.notEligible("not a recognized weapon")),
+                new InspectionReport.HandView("empty", CritProfile.notEligible("not a recognized weapon")),
+                state.list());
+        assertEquals("Guarantees (next used first): a (60.0 s left), b (no time limit, kept on death)",
+                lines.get(lines.size() - 1));
+    }
 }

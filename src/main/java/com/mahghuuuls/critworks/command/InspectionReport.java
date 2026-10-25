@@ -1,19 +1,21 @@
 package com.mahghuuuls.critworks.command;
 
 import com.mahghuuuls.critworks.api.CritStat;
+import com.mahghuuuls.critworks.api.GuaranteeSpec;
 import com.mahghuuuls.critworks.bonus.Bonus;
 import com.mahghuuuls.critworks.bonus.BonusCollector;
 import com.mahghuuuls.critworks.core.CritFormula;
 import com.mahghuuuls.critworks.core.CritProfile;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
 /**
  * Formats what {@code /critworks inspect} shows for one player: for each hand, eligibility and reason,
- * base values with their sources, bonuses, effective values, and the cap. Text only; it never reads or
- * changes game state.
+ * base values with their sources, bonuses, effective values, the cap, and the pending guarantees. Text
+ * only; it never reads or changes game state, so inspecting uses no guarantee.
  */
 final class InspectionReport {
 
@@ -22,6 +24,12 @@ final class InspectionReport {
 
     static List<String> lines(String playerName, double cap, List<Bonus> playerBonuses, HandView mainHand,
                               HandView offHand) {
+        return lines(playerName, cap, playerBonuses, mainHand, offHand, Collections.<GuaranteeSpec>emptyList());
+    }
+
+    /** @param guarantees the pending guarantees in use order, with their time left */
+    static List<String> lines(String playerName, double cap, List<Bonus> playerBonuses, HandView mainHand,
+                              HandView offHand, List<GuaranteeSpec> guarantees) {
         List<String> lines = new ArrayList<String>();
         lines.add("Critworks inspect: " + playerName);
         lines.add("Damage cap: " + (cap == CritFormula.NO_CAP ? "none" : multiplier(cap)));
@@ -33,7 +41,19 @@ final class InspectionReport {
         lines.add(totals.toString());
         hand(lines, "Main hand", mainHand);
         hand(lines, "Offhand", offHand);
-        lines.add("Guarantees: none");
+        if (guarantees.isEmpty()) {
+            lines.add("Guarantees: none");
+        } else {
+            StringBuilder text = new StringBuilder("Guarantees (next used first):");
+            for (int i = 0; i < guarantees.size(); i++) {
+                GuaranteeSpec spec = guarantees.get(i);
+                text.append(i == 0 ? " " : ", ").append(spec.getId()).append(" (")
+                        .append(spec.hasDuration() ? String.format(Locale.ROOT, "%.1f s left", spec.getDurationTicks() / 20.0D)
+                                : "no time limit")
+                        .append(spec.isKeptOnDeath() ? ", kept on death" : "").append(')');
+            }
+            lines.add(text.toString());
+        }
         return lines;
     }
 

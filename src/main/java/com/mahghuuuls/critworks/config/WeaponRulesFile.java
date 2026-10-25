@@ -53,7 +53,7 @@ public final class WeaponRulesFile {
             }
             String json = new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
             List<WeaponRule> rules = new WeaponRuleParser(WeaponRulesFile::lookup, warnings).parse(json);
-            for (WeaponRule rule : WeaponRules.rulesWithoutEffect(rules, WeaponClassifier::isRecognizedMeleeItem)) {
+            for (WeaponRule rule : WeaponRules.rulesWithoutEffect(rules, WeaponClassifier::isRecognizedItem)) {
                 warnings.accept("Critworks config weapons.json: rule #" + (rule.getIndex() + 1) + " sets values for "
                         + rule.getItem().getRegistryName() + ", which is not a weapon; add \"eligible\": true to make it one");
             }

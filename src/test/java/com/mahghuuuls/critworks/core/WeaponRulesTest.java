@@ -123,4 +123,12 @@ class WeaponRulesTest {
         assertSame(data, rules(meta, data).match(stack).chance);
         assertSame(both, rules(meta, data, both).match(stack).chance);
     }
+
+    @Test
+    void aChanceRuleOnABowHasAnEffect() {
+        WeaponRule bowChance = new WeaponRule(0, net.minecraft.init.Items.BOW, null, null, null, 40.0D, null);
+        assertEquals(0, WeaponRules.rulesWithoutEffect(Arrays.asList(bowChance), WeaponClassifier::isRecognizedItem).size());
+        WeaponRule stickChance = new WeaponRule(1, net.minecraft.init.Items.STICK, null, null, null, 40.0D, null);
+        assertEquals(1, WeaponRules.rulesWithoutEffect(Arrays.asList(stickChance), WeaponClassifier::isRecognizedItem).size());
+    }
 }

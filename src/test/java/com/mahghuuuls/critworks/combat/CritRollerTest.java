@@ -26,4 +26,24 @@ class CritRollerTest {
         assertTrue(CritRoller.isCritical(4.99D, 5.0D));
         assertFalse(CritRoller.isCritical(5.0D, 5.0D));
     }
+
+    @Test
+    void aPendingGuaranteeDecidesWithoutARollAndIsNotUsedByTheDecision() {
+        com.mahghuuuls.critworks.state.PlayerCritState state = new com.mahghuuuls.critworks.state.PlayerCritState();
+        state.grant(com.mahghuuuls.critworks.api.GuaranteeSpec.of("a"));
+        CritRoller.Decision decision = CritRoller.decide(state, 0.0D, new Random(1L));
+        assertTrue(decision.critical, "a guarantee crits even at chance 0");
+        assertTrue(decision.isGuaranteed());
+        assertTrue(Double.isNaN(decision.roll));
+        assertFalse(state.isEmpty(), "the attack, not the decision, uses the guarantee");
+    }
+
+    @Test
+    void withoutAGuaranteeTheRollDecides() {
+        CritRoller.Decision none = CritRoller.decide(new com.mahghuuuls.critworks.state.PlayerCritState(), 0.0D,
+                new Random(1L));
+        assertFalse(none.critical);
+        assertFalse(none.isGuaranteed());
+        assertTrue(CritRoller.decide(null, 100.0D, new Random(1L)).critical);
+    }
 }

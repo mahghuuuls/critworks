@@ -3,6 +3,9 @@ package com.mahghuuuls.critworks.command;
 import com.mahghuuuls.critworks.bonus.BonusCollector;
 import com.mahghuuuls.critworks.core.CritSettings;
 import com.mahghuuuls.critworks.core.StatResolver;
+import com.mahghuuuls.critworks.api.GuaranteeSpec;
+import com.mahghuuuls.critworks.state.PlayerCritCapability;
+import com.mahghuuuls.critworks.state.PlayerCritState;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
@@ -60,9 +63,11 @@ public final class CritworksCommand extends CommandBase {
             throw new WrongUsageException(getUsage(sender));
         }
         EntityPlayerMP player = args.length == 2 ? getPlayer(server, sender, args[1]) : getCommandSenderAsPlayer(sender);
+        PlayerCritState state = PlayerCritCapability.of(player);
         List<String> lines = InspectionReport.lines(player.getName(), settings.getDamageCap(),
                 bonuses.collect(player, ItemStack.EMPTY, EnumHand.MAIN_HAND), view(player, EnumHand.MAIN_HAND),
-                view(player, EnumHand.OFF_HAND));
+                view(player, EnumHand.OFF_HAND),
+                state == null ? Collections.<GuaranteeSpec>emptyList() : state.list());
         for (String line : lines) {
             sender.sendMessage(new TextComponentString(line));
             logger.info("[inspect] {}", line);

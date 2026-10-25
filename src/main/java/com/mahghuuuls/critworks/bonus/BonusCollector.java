@@ -1,6 +1,7 @@
 package com.mahghuuuls.critworks.bonus;
 
 import com.mahghuuuls.critworks.api.CritStat;
+import com.mahghuuuls.critworks.api.WeaponBonus;
 import net.minecraft.entity.ai.attributes.AttributeModifier;
 import net.minecraft.entity.ai.attributes.IAttribute;
 import net.minecraft.entity.ai.attributes.IAttributeInstance;
@@ -17,26 +18,37 @@ import java.util.Set;
 import java.util.function.Function;
 
 /**
- * Owns which bonuses count for one attack. Global bonuses are the player's attribute modifiers with
- * operation 0; a modifier that is not a finite number is left out and reported once per source.
+ * Owns which bonuses count for one attack: the player's global bonuses (attribute modifiers with operation
+ * 0) and the attacking stack's own weapon-specific bonuses from the registered providers. A bonus that is
+ * not a finite number is left out and reported once per source.
  */
 public final class BonusCollector {
 
     private static final int ADD = 0;
 
     private final Logger logger;
+    private final WeaponBonusProviders providers;
     private final Set<String> reported = Collections.synchronizedSet(new HashSet<String>());
 
     public BonusCollector(Logger logger) {
-        this.logger = logger;
+        this(logger, new WeaponBonusProviders(logger::warn));
     }
 
-    /** Every bonus that counts for an attack by {@code player} with {@code stack}; empty for no player. */
+    public BonusCollector(Logger logger, WeaponBonusProviders providers) {
+        this.logger = logger;
+        this.providers = providers;
+    }
+
+    /**
+     * Every bonus that counts for an attack by {@code player} (null for another attacker) with {@code stack}:
+     * the player's global bonuses, then the stack's own weapon-specific bonuses.
+     */
     public List<Bonus> collect(EntityPlayer player, ItemStack stack, EnumHand hand) {
-        if (player == null) {
-            return new ArrayList<Bonus>();
+        List<Bonus> bonuses = player == null ? new ArrayList<Bonus>() : globalBonuses(player::getEntityAttribute);
+        for (WeaponBonus bonus : providers.bonusesFor(player, stack)) {
+            add(bonuses, bonus.getStat(), bonus.getAmount(), bonus.getSource());
         }
-        return globalBonuses(player::getEntityAttribute);
+        return bonuses;
     }
 
     /** The global bonuses read from a player's attribute instances. */

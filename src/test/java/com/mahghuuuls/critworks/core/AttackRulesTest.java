@@ -40,4 +40,20 @@ class AttackRulesTest {
         assertEquals(AttackRules.REASON_PVP, AttackRules.problem(WEAPON, 1.0D, 100.0D, true, true, false));
         assertEquals("", AttackRules.problem(WEAPON, 1.0D, 100.0D, true, false, false));
     }
+
+    @Test
+    void anArrowIsDecidedByWeaponAndDrawAtRelease() {
+        assertEquals("", AttackRules.releaseProblem(WEAPON, 1.0D, 100.0D));
+        assertEquals(AttackRules.REASON_CHARGE, AttackRules.releaseProblem(WEAPON, 0.5D, 100.0D));
+        assertEquals("", AttackRules.releaseProblem(WEAPON, 0.5D, 50.0D));
+        assertEquals(StatResolver.REASON_NOT_A_WEAPON,
+                AttackRules.releaseProblem(CritProfile.notEligible(StatResolver.REASON_NOT_A_WEAPON), 1.0D, 100.0D));
+    }
+
+    @Test
+    void theHitChecksOnlyThePvpSetting() {
+        assertEquals("", AttackRules.targetProblem(false, false));
+        assertEquals("", AttackRules.targetProblem(true, true));
+        assertEquals(AttackRules.REASON_PVP, AttackRules.targetProblem(true, false));
+    }
 }

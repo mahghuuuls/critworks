@@ -10,8 +10,8 @@ import net.minecraft.util.EnumHand;
 import java.util.List;
 
 /**
- * The single owner of stat resolution: weapon eligibility, base stat precedence (pack rule, then
- * fallback; each stat on its own), bonus collection, and the formula. Every consumer (attacks,
+ * The single owner of stat resolution: weapon eligibility, base stat precedence (pack rule, then addon
+ * default, then fallback; each stat on its own), bonus collection, and the formula. Every consumer (attacks,
  * inspection, tooltips, diagnostics) asks this class.
  */
 public final class StatResolver {
@@ -23,18 +23,29 @@ public final class StatResolver {
     private final CritSettings settings;
     private final WeaponRules rules;
     private final BonusCollector bonuses;
+    private final AddonDefaults defaults;
 
     public StatResolver(CritSettings settings, WeaponRules rules, BonusCollector bonuses) {
+        this(settings, rules, bonuses, new AddonDefaults(message -> { }));
+    }
+
+    public StatResolver(CritSettings settings, WeaponRules rules, BonusCollector bonuses, AddonDefaults defaults) {
         this.settings = settings;
         this.rules = rules;
         this.bonuses = bonuses;
+        this.defaults = defaults;
+    }
+
+    /** Resolves the stats for the stack's own attack kind (arrows for a bow, melee otherwise). */
+    public CritProfile resolve(EntityPlayer player, ItemStack stack, EnumHand hand) {
+        return resolve(player, stack, hand, AttackKind.naturalFor(stack));
     }
 
     /**
-     * Resolves the stats an attack by {@code player} with {@code stack} in {@code hand} would use now.
-     * Never changes game state.
+     * Resolves the stats an attack of {@code kind} by {@code player} with {@code stack} in {@code hand} would
+     * use now. Never changes game state.
      */
-    public CritProfile resolve(EntityPlayer player, ItemStack stack, EnumHand hand) {
+    public CritProfile resolve(EntityPlayer player, ItemStack stack, EnumHand hand, AttackKind kind) {
         WeaponRules.Match match = rules.match(stack);
         String eligibilitySource = SOURCE_RECOGNIZED;
         if (match.eligible != null) {
@@ -42,21 +53,28 @@ public final class StatResolver {
                 return CritProfile.notEligible("turned off by " + match.eligible.describe());
             }
             eligibilitySource = match.eligible.describe();
-        } else if (!WeaponClassifier.isRecognizedMeleeWeapon(stack)) {
+        } else if (!WeaponClassifier.isRecognizedWeapon(stack, kind)) {
             return CritProfile.notEligible(REASON_NOT_A_WEAPON);
         }
 
+        AddonDefaults.Match addon = defaults.match(stack);
         double baseChance = settings.getFallbackChance();
         String chanceSource = SOURCE_FALLBACK;
         if (match.chance != null) {
             baseChance = match.chance.getChance();
             chanceSource = match.chance.describe();
+        } else if (addon.chance != null) {
+            baseChance = addon.chance.getChance();
+            chanceSource = addon.chance.describe();
         }
         double baseMultiplier = settings.getFallbackMultiplier();
         String damageSource = SOURCE_FALLBACK;
         if (match.damage != null) {
             baseMultiplier = match.damage.getDamage();
             damageSource = match.damage.describe();
+        } else if (addon.damage != null) {
+            baseMultiplier = addon.damage.getDamage();
+            damageSource = addon.damage.describe();
         }
 
         List<Bonus> counted = bonuses.collect(player, stack, hand);

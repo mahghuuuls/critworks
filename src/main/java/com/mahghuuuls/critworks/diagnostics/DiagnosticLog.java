@@ -29,16 +29,22 @@ public final class DiagnosticLog {
         }
     }
 
+    /** The one line of a resolved attack: "[diag] attack melee ..." or "[diag] attack arrow ...". */
     public Line line(String kind) {
-        return new Line(kind);
+        return new Line("[diag] attack ", kind);
+    }
+
+    /** The short line of one successful hit by a critical arrow: "[diag] hit arrow ...". */
+    public Line hitLine(String kind) {
+        return new Line("[diag] hit ", kind);
     }
 
     /** Builds one "key=value" line; values with spaces stay readable because keys never contain spaces. */
     public static final class Line {
-        private final StringBuilder text = new StringBuilder("[diag] attack ");
+        private final StringBuilder text;
 
-        private Line(String kind) {
-            text.append(kind);
+        private Line(String prefix, String kind) {
+            text = new StringBuilder(prefix).append(kind);
         }
 
         public Line add(String key, Object value) {

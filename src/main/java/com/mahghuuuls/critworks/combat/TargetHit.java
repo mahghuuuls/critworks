@@ -10,7 +10,10 @@ final class TargetHit {
     float damageBefore;
     float damageAfter;
     float absorptionBefore;
+    float damageDealt;
+    boolean critical;
     boolean successful;
+    boolean eventFired;
 
     TargetHit(EntityLivingBase target, boolean primary) {
         this.targetName = target.getName() + "#" + target.getEntityId();

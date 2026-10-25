@@ -81,4 +81,29 @@ class StatResolverTest {
         assertEquals(1.5D, profile.getBaseMultiplier());
         assertEquals(StatResolver.SOURCE_FALLBACK, profile.getBaseMultiplierSource());
     }
+
+    @Test
+    void aBowIsRecognizedForArrowsOnly() {
+        StatResolver resolver = resolver();
+        ItemStack bow = new ItemStack(Items.BOW);
+        assertTrue(resolver.resolve(null, bow, EnumHand.MAIN_HAND, AttackKind.ARROW).isEligible());
+        assertTrue(resolve(resolver, bow).isEligible(), "a bow resolves for arrows by default");
+        CritProfile melee = resolver.resolve(null, bow, EnumHand.MAIN_HAND, AttackKind.MELEE);
+        assertFalse(melee.isEligible());
+        assertEquals(StatResolver.REASON_NOT_A_WEAPON, melee.getIneligibleReason());
+    }
+
+    @Test
+    void aSwordIsNotARangedWeapon() {
+        assertFalse(resolver().resolve(null, new ItemStack(Items.IRON_SWORD), EnumHand.MAIN_HAND, AttackKind.ARROW)
+                .isEligible());
+    }
+
+    @Test
+    void bowRuleValuesApplyToItsArrows() {
+        CritProfile profile = resolver(new WeaponRule(0, Items.BOW, null, null, null, 40.0D, 2.5D))
+                .resolve(null, new ItemStack(Items.BOW), EnumHand.MAIN_HAND, AttackKind.ARROW);
+        assertEquals(40.0D, profile.getFinalChance());
+        assertEquals(2.5D, profile.getFinalMultiplier());
+    }
 }
