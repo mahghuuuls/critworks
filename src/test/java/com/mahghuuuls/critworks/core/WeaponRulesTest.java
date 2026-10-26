@@ -105,6 +105,56 @@ class WeaponRulesTest {
     }
 
     @Test
+    void itemDataRulesThatRequireDifferentValuesNeverTie() throws Exception {
+        WeaponRule zero = new WeaponRule(0, sword, null, nbt("{display:{Name:\"Zero\"}}"), null, 0.0D, null);
+        WeaponRule ten = new WeaponRule(1, sword, null, nbt("{display:{Name:\"Ten\"}}"), null, 10.0D, null);
+        WeaponRules all = rules(zero, ten);
+        assertEquals(0, warnings.size());
+        ItemStack stack = new ItemStack(sword);
+        stack.setTagCompound(nbt("{display:{Name:\"Ten\"}}"));
+        assertSame(ten, all.match(stack).chance);
+    }
+
+    @Test
+    void itemDataRulesThatRequireDifferentTypesNeverTie() throws Exception {
+        rules(new WeaponRule(0, sword, null, nbt("{a:1b}"), null, 10.0D, null),
+                new WeaponRule(1, sword, null, nbt("{a:{b:1b}}"), null, 20.0D, null));
+        assertEquals(0, warnings.size());
+    }
+
+    @Test
+    void itemDataRulesThatRequireTheSameValueMayOverlapAndWarn() throws Exception {
+        WeaponRule a = new WeaponRule(0, sword, null, nbt("{display:{Name:\"X\"}}"), null, 10.0D, null);
+        WeaponRule b = new WeaponRule(1, sword, null, nbt("{display:{Name:\"X\"},RepairCost:1}"), null, 20.0D, null);
+        WeaponRules all = rules(a, b);
+        assertEquals(1, warnings.size());
+        ItemStack stack = new ItemStack(sword);
+        stack.setTagCompound(nbt("{display:{Name:\"X\"},RepairCost:1}"));
+        assertSame(a, all.match(stack).chance);
+    }
+
+    @Test
+    void anEmptyListOnlyOverlapsAnEmptyList() throws Exception {
+        rules(new WeaponRule(0, sword, null, nbt("{display:{Lore:[]}}"), null, 10.0D, null),
+                new WeaponRule(1, sword, null, nbt("{display:{Lore:[\"a\"]}}"), null, 20.0D, null));
+        assertEquals(0, warnings.size());
+        rules(new WeaponRule(0, sword, null, nbt("{display:{Lore:[]}}"), null, 10.0D, null),
+                new WeaponRule(1, sword, null, nbt("{display:{Lore:[]}}"), null, 20.0D, null));
+        assertEquals(1, warnings.size());
+    }
+
+    @Test
+    void itemDataRulesWithListsMayOverlapAndWarn() throws Exception {
+        WeaponRule a = new WeaponRule(0, sword, null, nbt("{display:{Lore:[\"a\"]}}"), null, 10.0D, null);
+        WeaponRule b = new WeaponRule(1, sword, null, nbt("{display:{Lore:[\"b\"]}}"), null, 20.0D, null);
+        WeaponRules all = rules(a, b);
+        assertEquals(1, warnings.size());
+        ItemStack stack = new ItemStack(sword);
+        stack.setTagCompound(nbt("{display:{Lore:[\"a\",\"b\"]}}"));
+        assertSame(a, all.match(stack).chance);
+    }
+
+    @Test
     void ruleOnANonWeaponWithoutEligibilityHasNoEffect() {
         Item stick = new Item().setRegistryName("test:stick");
         WeaponRule chanceOnly = new WeaponRule(0, stick, null, null, null, 50.0D, null);

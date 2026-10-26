@@ -78,7 +78,8 @@ public final class WeaponRules {
 
     /**
      * Two rules for the same item with the same specificity that set the same value can both match one
-     * stack (always when their conditions are identical, sometimes when their item data differs).
+     * stack (always when their conditions are identical, and when their item data can be present on one
+     * stack together).
      */
     private void reportPossibleTies(Consumer<String> warnings) {
         for (List<WeaponRule> list : byItem.values()) {

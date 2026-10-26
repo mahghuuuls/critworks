@@ -2,7 +2,9 @@ package com.mahghuuuls.critworks.core;
 
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagList;
 import net.minecraft.nbt.NBTUtil;
 
 /**
@@ -48,9 +50,39 @@ public final class WeaponRule {
         return nbt == null || (stack.getTagCompound() != null && NBTUtil.areNBTEquals(nbt, stack.getTagCompound(), true));
     }
 
-    /** False when the rules can never match one stack, because they require different metadata. */
+    /**
+     * False when the rules can never match one stack, because they require different metadata or
+     * different item data at the same place.
+     */
     public boolean canMatchSameStackAs(WeaponRule other) {
-        return item == other.item && (meta == null || other.meta == null || meta.equals(other.meta));
+        return item == other.item && (meta == null || other.meta == null || meta.equals(other.meta))
+                && (nbt == null || other.nbt == null || canBothMatch(nbt, other.nbt));
+    }
+
+    /**
+     * Mirrors the partial matching of {@link NBTUtil#areNBTEquals}: a compound needs only its own keys,
+     * and a list needs each of its elements somewhere in the stack's list. A stack holds one tag per key,
+     * so two required tags of different types or different values never both match. Lists are treated
+     * as able to overlap, except an empty list, which only matches an empty list.
+     */
+    private static boolean canBothMatch(NBTBase a, NBTBase b) {
+        if (a.getId() != b.getId()) {
+            return false;
+        }
+        if (a instanceof NBTTagCompound) {
+            NBTTagCompound left = (NBTTagCompound) a;
+            NBTTagCompound right = (NBTTagCompound) b;
+            for (String key : left.getKeySet()) {
+                if (right.hasKey(key) && !canBothMatch(left.getTag(key), right.getTag(key))) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        if (a instanceof NBTTagList) {
+            return ((NBTTagList) a).isEmpty() == ((NBTTagList) b).isEmpty();
+        }
+        return a.equals(b);
     }
 
     public Item getItem() {
