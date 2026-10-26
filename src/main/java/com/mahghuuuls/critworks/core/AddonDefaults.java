@@ -3,7 +3,10 @@ package com.mahghuuuls.critworks.core;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -15,13 +18,28 @@ import java.util.function.Predicate;
  */
 public final class AddonDefaults {
 
-    private final List<Entry> itemDefaults = new CopyOnWriteArrayList<Entry>();
-    private final List<Entry> predicateDefaults = new CopyOnWriteArrayList<Entry>();
+    private final List<Entry> itemDefaults;
+    private final List<Entry> predicateDefaults;
+    private final Set<Entry> broken = Collections.newSetFromMap(new ConcurrentHashMap<Entry, Boolean>());
     private final Consumer<String> warn;
 
     /** @param warn receives one warning when a predicate throws; that predicate is then skipped */
     public AddonDefaults(Consumer<String> warn) {
+        this(new CopyOnWriteArrayList<Entry>(), new CopyOnWriteArrayList<Entry>(), warn);
+    }
+
+    private AddonDefaults(List<Entry> itemDefaults, List<Entry> predicateDefaults, Consumer<String> warn) {
+        this.itemDefaults = itemDefaults;
+        this.predicateDefaults = predicateDefaults;
         this.warn = warn;
+    }
+
+    /**
+     * The same defaults with their own record of failures. The client's tooltips use it, so a predicate
+     * that fails only for a tooltip still counts for attacks in the same game (REQ-095).
+     */
+    public AddonDefaults withOwnFailures() {
+        return new AddonDefaults(itemDefaults, predicateDefaults, warn);
     }
 
     public void register(Item item, Predicate<ItemStack> stacks, Double chance, Double damage, String source) {
@@ -45,7 +63,7 @@ public final class AddonDefaults {
                 if ((chance != null || entry.chance == null) && (damage != null || entry.damage == null)) {
                     continue;
                 }
-                if (!entry.matches(stack)) {
+                if (!entry.matches(stack, broken, warn)) {
                     continue;
                 }
                 if (chance == null && entry.chance != null) {
@@ -65,13 +83,12 @@ public final class AddonDefaults {
     }
 
     /** One registered default. */
-    public final class Entry {
+    public static final class Entry {
         private final Item item;
         private final Predicate<ItemStack> stacks;
         private final Double chance;
         private final Double damage;
         private final String source;
-        private volatile boolean broken;
 
         Entry(Item item, Predicate<ItemStack> stacks, Double chance, Double damage, String source) {
             this.item = item;
@@ -81,17 +98,17 @@ public final class AddonDefaults {
             this.source = source;
         }
 
-        boolean matches(ItemStack stack) {
+        boolean matches(ItemStack stack, Set<Entry> broken, Consumer<String> warn) {
             if (item != null) {
                 return stack.getItem() == item;
             }
-            if (broken) {
+            if (broken.contains(this)) {
                 return false;
             }
             try {
                 return stacks.test(stack);
             } catch (RuntimeException | LinkageError e) {
-                broken = true;
+                broken.add(this);
                 warn.accept("Critworks: an item default predicate from " + source + " failed and is skipped: " + e);
                 return false;
             }

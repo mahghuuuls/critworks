@@ -52,6 +52,17 @@ class BonusCollectorTest {
     }
 
     @Test
+    void theClientNamesSyncedModifiersFromTheReceivedLabels() {
+        UUID id = UUID.randomUUID();
+        instance(CritStat.ADDITIONAL_CHANCE).applyModifier(
+                new AttributeModifier(id, "Unknown synced attribute modifier", 10.0D, 0));
+        BonusCollector client = collector.forClient(modifier -> modifier.getID().equals(id) ? "JAFS" : modifier.getName());
+        List<Bonus> bonuses = client.globalBonuses(map::getAttributeInstance);
+        assertEquals("JAFS", bonuses.get(0).getSource());
+        assertEquals(10.0D, bonuses.get(0).getAmount());
+    }
+
+    @Test
     void twoSourcesAddUp() {
         CritAttributes.setOn(instance(CritStat.ADDITIONAL_CHANCE), "test:helmet", CritStat.ADDITIONAL_CHANCE, 5.0D);
         CritAttributes.setOn(instance(CritStat.ADDITIONAL_CHANCE), "test:boots", CritStat.ADDITIONAL_CHANCE, 5.0D);

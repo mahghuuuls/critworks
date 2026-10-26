@@ -67,7 +67,8 @@ public final class CritAttributes {
         setOn(player.getEntityAttribute(attribute(stat)), sourceId, stat, amount);
     }
 
-    static void setOn(IAttributeInstance instance, String sourceId, CritStat stat, double amount) {
+    /** As {@link #setGlobalBonus} on one attribute instance, for sources that hold the instance already. */
+    public static void setOn(IAttributeInstance instance, String sourceId, CritStat stat, double amount) {
         UUID id = modifierId(sourceId, stat);
         instance.removeModifier(id);
         if (amount != 0.0D) {

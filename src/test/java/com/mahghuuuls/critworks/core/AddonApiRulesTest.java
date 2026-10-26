@@ -102,4 +102,22 @@ class AddonApiRulesTest {
         assertFalse(policies.allows(null));
         assertEquals(1, warnings.size());
     }
+
+    @Test
+    void aDefaultPredicateThatFailsOnlyForTooltipsStillCountsForAttacks() {
+        List<String> warnings = new ArrayList<String>();
+        AddonDefaults attacks = new AddonDefaults(warnings::add);
+        ItemStack tooltipStack = new ItemStack(Items.IRON_SWORD);
+        attacks.register(null, stack -> {
+            if (stack == tooltipStack) {
+                throw new IllegalStateException("client only");
+            }
+            return stack.getItem() instanceof ItemSword;
+        }, 40.0D, null, "flaky");
+        AddonDefaults tooltips = attacks.withOwnFailures();
+        assertEquals(null, tooltips.match(tooltipStack).chance);
+        assertEquals(null, tooltips.match(new ItemStack(Items.IRON_SWORD)).chance);
+        assertEquals(40.0D, attacks.match(new ItemStack(Items.IRON_SWORD)).chance.getChance());
+        assertEquals(1, warnings.size());
+    }
 }

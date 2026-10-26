@@ -1,5 +1,6 @@
 package com.mahghuuuls.critworks.combat;
 
+import java.util.function.ToIntFunction;
 import com.mahghuuuls.critworks.api.CritworksHitEvent;
 import com.mahghuuuls.critworks.core.AttackKind;
 import com.mahghuuuls.critworks.core.AttackerPolicies;
@@ -27,12 +28,16 @@ public final class CombatHandlers {
         this.mobs = mobs;
     }
 
+    /** The ticks of a full vanilla bow draw. */
+    public static final int VANILLA_FULL_DRAW_TICKS = ArrowShotTracker.FULL_DRAW_TICKS;
+
+    /** @param fullDrawTicks the ticks of a full draw with a bow (the Spartan longbow has its own) */
     public static CombatHandlers create(StatResolver resolver, CritSettings settings, CritFeedback feedback,
                                         DiagnosticLog diagnostics, MeleeAttackSource meleeSource,
-                                        AttackerPolicies attackers) {
+                                        AttackerPolicies attackers, ToIntFunction<ItemStack> fullDrawTicks) {
         HitResolver hits = new HitResolver(new ReactionGuard(CritworksHitEvent.MAX_CHAIN_DEPTH));
         return new CombatHandlers(new MeleeAttackTracker(resolver, settings, feedback, diagnostics, meleeSource, hits),
-                new ArrowShotTracker(resolver, settings, feedback, diagnostics, hits),
+                new ArrowShotTracker(resolver, settings, feedback, diagnostics, hits, fullDrawTicks),
                 new MobAttackTracker(resolver, settings, attackers, feedback, diagnostics, hits));
     }
 

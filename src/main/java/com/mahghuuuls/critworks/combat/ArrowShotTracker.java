@@ -27,6 +27,7 @@ import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 
+import java.util.function.ToIntFunction;
 import java.util.IdentityHashMap;
 import java.util.Map;
 
@@ -46,12 +47,15 @@ public final class ArrowShotTracker {
     private final CritFeedback feedback;
     private final DiagnosticLog diagnostics;
     private final HitResolver hitResolver;
+    private final ToIntFunction<ItemStack> fullDrawTicks;
     private final PendingShots<EntityPlayer, Release> releases = new PendingShots<EntityPlayer, Release>();
     private final Map<EntityArrow, ArrowHit> hitsInProgress = new IdentityHashMap<EntityArrow, ArrowHit>();
 
+    /** @param fullDrawTicks the ticks of a full draw with a bow; {@link #FULL_DRAW_TICKS} unless a mod changes it */
     ArrowShotTracker(StatResolver resolver, CritSettings settings, CritFeedback feedback, DiagnosticLog diagnostics,
-                     HitResolver hitResolver) {
+                     HitResolver hitResolver, ToIntFunction<ItemStack> fullDrawTicks) {
         this.hitResolver = hitResolver;
+        this.fullDrawTicks = fullDrawTicks;
         this.resolver = resolver;
         this.settings = settings;
         this.feedback = feedback;
@@ -72,7 +76,7 @@ public final class ArrowShotTracker {
             // Another mod's launcher that fires this event keeps its own arrow behavior (REQ-030).
             return;
         }
-        float draw = drawFraction(event.getCharge());
+        float draw = drawFraction(event.getCharge(), fullDrawTicks.applyAsInt(bow));
         String weapon = bow.isEmpty() ? "empty" : String.valueOf(bow.getItem().getRegistryName());
         releases.record(player, new Release(profile, draw, hand, weapon, bow.copy()), player.world.getTotalWorldTime());
     }
@@ -230,7 +234,12 @@ public final class ArrowShotTracker {
      * time, so a bow held for half the time is half drawn (REQ-017).
      */
     static float drawFraction(int chargeTicks) {
-        return Math.min(Math.max(chargeTicks, 0) / (float) FULL_DRAW_TICKS, 1.0F);
+        return drawFraction(chargeTicks, FULL_DRAW_TICKS);
+    }
+
+    /** As {@link #drawFraction(int)} for a bow whose full draw takes {@code fullDrawTicks}, such as a Spartan longbow. */
+    static float drawFraction(int chargeTicks, int fullDrawTicks) {
+        return Math.min(Math.max(chargeTicks, 0) / (float) Math.max(fullDrawTicks, 1), 1.0F);
     }
 
     private static EntityArrow arrowOf(DamageSource source) {

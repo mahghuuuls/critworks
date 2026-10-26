@@ -77,7 +77,7 @@ public final class StatResolver {
             damageSource = addon.damage.describe();
         }
 
-        List<Bonus> counted = bonuses.collect(player, stack, hand);
+        List<Bonus> counted = bonuses.collect(player, stack, hand, settings::isIntegrationEnabled);
         double cap = settings.getDamageCap();
         double finalChance = CritFormula.finalChance(baseChance,
                 BonusCollector.total(counted, CritStat.INCREASED_CHANCE),

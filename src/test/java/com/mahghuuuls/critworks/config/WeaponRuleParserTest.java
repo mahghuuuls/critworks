@@ -1,5 +1,6 @@
 package com.mahghuuuls.critworks.config;
 
+import com.mahghuuuls.critworks.integration.spartan.SpartanWeaponTypes;
 import com.mahghuuuls.critworks.core.WeaponRule;
 import net.minecraft.item.Item;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,13 +28,14 @@ class WeaponRuleParserTest {
                 "minecraft:wool", "minecraft:golden_sword"}) {
             items.put(id, new Item().setRegistryName(id));
         }
-        parser = new WeaponRuleParser(items::get, warnings::add);
+        parser = new WeaponRuleParser(items::get, SpartanWeaponTypes::forName, SpartanWeaponTypes.names(), warnings::add);
     }
 
     @Test
     void shippedExamplesAllParse() {
         List<WeaponRule> rules = parser.parse(WeaponRulesFile.EXAMPLES);
-        assertEquals(5, rules.size());
+        assertEquals(6, rules.size());
+        assertEquals("dagger", rules.get(5).getType().name());
         assertTrue(warnings.isEmpty(), warnings.toString());
         assertEquals(Boolean.TRUE, rules.get(0).getEligible());
         assertEquals(50.0D, rules.get(0).getChance());
@@ -74,5 +76,34 @@ class WeaponRuleParserTest {
     void emptyListLoadsNothingSilently() {
         assertTrue(parser.parse("[]").isEmpty());
         assertTrue(warnings.isEmpty());
+    }
+
+    @Test
+    void typeRulesWithoutSpartanAreSkippedWithOneWarningAndTheRestLoad() {
+        WeaponRuleParser noSpartan = new WeaponRuleParser(items::get, warnings::add);
+        List<WeaponRule> rules = noSpartan.parse("["
+                + "{\"spartan_type\":\"dagger\",\"chance\":25},"
+                + "{\"spartan_type\":\"rapier\",\"chance\":30},"
+                + "{\"item\":\"minecraft:iron_sword\",\"chance\":10}]");
+        assertEquals(1, rules.size());
+        assertEquals(1, warnings.size(), warnings.toString());
+        assertTrue(warnings.get(0).contains("2 \"spartan_type\" rule(s) skipped"), warnings.get(0));
+    }
+
+    @Test
+    void badTypeRulesAreSkippedOneWarningEach() {
+        List<WeaponRule> rules = parser.parse("["
+                + "{\"spartan_type\":\"crossbow\",\"chance\":25},"
+                + "{\"spartan_type\":\"dagger\",\"item\":\"minecraft:iron_sword\",\"chance\":25},"
+                + "{\"spartan_type\":\"dagger\",\"meta\":1,\"chance\":25},"
+                + "{\"spartan_type\":3,\"chance\":25},"
+                + "{\"spartan_type\":\"dagger\"},"
+                + "{\"spartan_type\":\"dagger\",\"chance\":25,\"damage\":1.8}]");
+        assertEquals(1, rules.size());
+        assertEquals(5, warnings.size(), warnings.toString());
+        assertTrue(warnings.get(0).contains("unknown spartan_type \"crossbow\"") && warnings.get(0).contains("dagger"),
+                warnings.get(0));
+        assertEquals(25.0D, rules.get(0).getChance());
+        assertEquals(1.8D, rules.get(0).getDamage());
     }
 }

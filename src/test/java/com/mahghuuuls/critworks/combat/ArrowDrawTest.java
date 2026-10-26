@@ -32,4 +32,14 @@ class ArrowDrawTest {
         assertEquals(0.0F, ArrowShotTracker.drawFraction(0));
         assertEquals(0.0F, ArrowShotTracker.drawFraction(-5));
     }
+
+    @Test
+    void aLongbowIsFullyDrawnAtItsOwnDrawTime() {
+        assertEquals(1.0F, ArrowShotTracker.drawFraction(24, 24), "an iron Spartan longbow at 24 ticks");
+        assertTrue(ArrowShotTracker.drawFraction(23, 24) < 1.0F);
+        assertFalse(ChargeRule.meetsThreshold(ArrowShotTracker.drawFraction(20, 24), 100.0D),
+                "20 ticks is a full vanilla draw but not a full longbow draw");
+        assertTrue(ChargeRule.meetsThreshold(ArrowShotTracker.drawFraction(12, 24), 50.0D));
+        assertEquals(1.0F, ArrowShotTracker.drawFraction(1, 0), "a draw time of 0: every release is full, as in Spartan");
+    }
 }

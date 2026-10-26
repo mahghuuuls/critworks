@@ -15,7 +15,8 @@ import java.util.function.Function;
  * Owns rule matching. For each value (eligibility, chance, damage) the most specific matching rule
  * that sets it wins; between equally specific rules the first in the file wins. Possible ties are
  * found and reported once at load, so matching during play changes nothing and is safe from any
- * thread. Rules are grouped by item, so a lookup only looks at the rules of the stack's item.
+ * thread. Id rules are grouped by item, so a lookup only looks at the rules of the stack's item and at
+ * the few type rules.
  */
 public final class WeaponRules {
 
@@ -23,11 +24,16 @@ public final class WeaponRules {
 
     private final List<WeaponRule> rules;
     private final Map<Item, List<WeaponRule>> byItem = new IdentityHashMap<Item, List<WeaponRule>>();
+    private final List<WeaponRule> typeRules = new ArrayList<WeaponRule>();
 
     /** Rules in file order. */
     public WeaponRules(List<WeaponRule> rules, Consumer<String> warnings) {
         this.rules = Collections.unmodifiableList(new ArrayList<WeaponRule>(rules));
         for (WeaponRule rule : this.rules) {
+            if (rule.getType() != null) {
+                typeRules.add(rule);
+                continue;
+            }
             List<WeaponRule> list = byItem.get(rule.getItem());
             if (list == null) {
                 list = new ArrayList<WeaponRule>();
@@ -48,12 +54,26 @@ public final class WeaponRules {
 
     /** The values the rules set for this stack; each part may be absent. */
     public Match match(ItemStack stack) {
-        WeaponRule eligible = null;
-        WeaponRule chance = null;
-        WeaponRule damage = null;
-        List<WeaponRule> candidates = stack.isEmpty() ? null : byItem.get(stack.getItem());
-        if (candidates != null) {
-            for (WeaponRule rule : candidates) {
+        Winners winners = new Winners();
+        if (!stack.isEmpty()) {
+            // Type rules first: any id rule is more specific, and equally specific rules keep file order.
+            winners.consider(typeRules, stack);
+            List<WeaponRule> byId = byItem.get(stack.getItem());
+            if (byId != null) {
+                winners.consider(byId, stack);
+            }
+        }
+        return new Match(winners.eligible, winners.chance, winners.damage);
+    }
+
+    /** The best rule so far for each value. */
+    private static final class Winners {
+        WeaponRule eligible;
+        WeaponRule chance;
+        WeaponRule damage;
+
+        void consider(List<WeaponRule> rules, ItemStack stack) {
+            for (WeaponRule rule : rules) {
                 if (!rule.matches(stack)) {
                     continue;
                 }
@@ -68,10 +88,9 @@ public final class WeaponRules {
                 }
             }
         }
-        return new Match(eligible, chance, damage);
     }
 
-    /** Earlier rules win ties, because candidates are in file order and only a higher specificity replaces. */
+    /** Earlier rules win ties, because candidates of one specificity are in file order and only a higher specificity replaces. */
     private static WeaponRule better(WeaponRule current, WeaponRule candidate) {
         return current == null || candidate.specificity() > current.specificity() ? candidate : current;
     }
@@ -82,7 +101,9 @@ public final class WeaponRules {
      * stack together).
      */
     private void reportPossibleTies(Consumer<String> warnings) {
-        for (List<WeaponRule> list : byItem.values()) {
+        List<List<WeaponRule>> groups = new ArrayList<List<WeaponRule>>(byItem.values());
+        groups.add(typeRules);
+        for (List<WeaponRule> list : groups) {
             for (int i = 0; i < list.size(); i++) {
                 for (int j = i + 1; j < list.size(); j++) {
                     WeaponRule first = list.get(i);
@@ -119,7 +140,8 @@ public final class WeaponRules {
     public static List<WeaponRule> rulesWithoutEffect(List<WeaponRule> rules, Function<Item, Boolean> recognized) {
         List<WeaponRule> result = new ArrayList<WeaponRule>();
         for (WeaponRule rule : rules) {
-            if (rule.getEligible() == null && !recognized.apply(rule.getItem()) && !hasEnablingRule(rules, rule)) {
+            if (rule.getType() == null && rule.getEligible() == null && !recognized.apply(rule.getItem())
+                    && !hasEnablingRule(rules, rule)) {
                 result.add(rule);
             }
         }

@@ -65,7 +65,7 @@ public final class CritworksCommand extends CommandBase {
         EntityPlayerMP player = args.length == 2 ? getPlayer(server, sender, args[1]) : getCommandSenderAsPlayer(sender);
         PlayerCritState state = PlayerCritCapability.of(player);
         List<String> lines = InspectionReport.lines(player.getName(), settings.getDamageCap(),
-                bonuses.collect(player, ItemStack.EMPTY, EnumHand.MAIN_HAND), view(player, EnumHand.MAIN_HAND),
+                bonuses.collect(player, ItemStack.EMPTY, EnumHand.MAIN_HAND, settings::isIntegrationEnabled), view(player, EnumHand.MAIN_HAND),
                 view(player, EnumHand.OFF_HAND),
                 state == null ? Collections.<GuaranteeSpec>emptyList() : state.list());
         for (String line : lines) {

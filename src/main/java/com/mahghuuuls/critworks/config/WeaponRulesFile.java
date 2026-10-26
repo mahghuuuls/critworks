@@ -1,5 +1,9 @@
 package com.mahghuuuls.critworks.config;
 
+import java.util.function.Function;
+import java.util.Collections;
+import java.util.Collection;
+import com.mahghuuuls.critworks.core.ItemType;
 import com.mahghuuuls.critworks.core.WeaponClassifier;
 import com.mahghuuuls.critworks.core.WeaponRule;
 import com.mahghuuuls.critworks.core.WeaponRules;
@@ -27,13 +31,26 @@ public final class WeaponRulesFile {
             + "  { \"item\": \"minecraft:diamond_sword\", \"eligible\": false },\n"
             + "  { \"item\": \"minecraft:iron_sword\", \"chance\": 10 },\n"
             + "  { \"item\": \"minecraft:wool\", \"meta\": 14, \"eligible\": true, \"chance\": 20 },\n"
-            + "  { \"item\": \"minecraft:golden_sword\", \"nbt\": \"{display:{Name:\\\"Lucky Blade\\\"}}\", \"chance\": 100 }\n"
+            + "  { \"item\": \"minecraft:golden_sword\", \"nbt\": \"{display:{Name:\\\"Lucky Blade\\\"}}\", \"chance\": 100 },\n"
+            + "  { \"spartan_type\": \"dagger\", \"chance\": 25, \"damage\": 1.8 }\n"
             + "]\n";
 
     private final Logger logger;
+    private final Function<String, ItemType> typeLookup;
+    private final Collection<String> typeNames;
 
     public WeaponRulesFile(Logger logger) {
+        this(logger, null, Collections.<String>emptyList());
+    }
+
+    /**
+     * @param typeLookup the Spartan weapon type for a rule name, or null while Spartan Weaponry is absent or
+     *                   its integration is off
+     */
+    public WeaponRulesFile(Logger logger, Function<String, ItemType> typeLookup, Collection<String> typeNames) {
         this.logger = logger;
+        this.typeLookup = typeLookup;
+        this.typeNames = typeNames;
     }
 
     public WeaponRules load(File folder) {
@@ -52,7 +69,7 @@ public final class WeaponRulesFile {
                 return WeaponRules.empty();
             }
             String json = new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
-            List<WeaponRule> rules = new WeaponRuleParser(WeaponRulesFile::lookup, warnings).parse(json);
+            List<WeaponRule> rules = new WeaponRuleParser(WeaponRulesFile::lookup, typeLookup, typeNames, warnings).parse(json);
             for (WeaponRule rule : WeaponRules.rulesWithoutEffect(rules, WeaponClassifier::isRecognizedItem)) {
                 warnings.accept("Critworks config weapons.json: rule #" + (rule.getIndex() + 1) + " sets values for "
                         + rule.getItem().getRegistryName() + ", which is not a weapon; add \"eligible\": true to make it one");
@@ -75,7 +92,8 @@ public final class WeaponRulesFile {
         }
     }
 
-    private static Item lookup(String id) {
+    /** The registered item with this id, or null. */
+    public static Item lookup(String id) {
         ResourceLocation location = new ResourceLocation(id);
         return ForgeRegistries.ITEMS.containsKey(location) ? ForgeRegistries.ITEMS.getValue(location) : null;
     }

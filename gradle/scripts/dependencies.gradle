@@ -51,6 +51,9 @@ dependencies {
     // Development runtime with the optional target mods, opt-in: set dev_runtime_targets = true in gradle.properties.
     // RLCombat is not loaded here; it needs FermiumBooter, ReachFix, and Mixins, and is checked in a test instance.
     if (propertyBool('dev_runtime_targets')) {
+        // Spartan Weaponry carries its own Mixin 0.8.5, which MixinBooter 9.1 (pulled in by the two dev helpers above)
+        // cannot run with: its plugin fails at launch. A direct MixinBooter raises the resolved version, as in JASS Integrations.
+        runtimeOnly "zone.rong:mixinbooter:${propertyString('mixin_booter_version')}"
         runtimeOnly rfg.deobf('curse.maven:just-another-food-system-1758738:9283113')
         runtimeOnly rfg.deobf('curse.maven:spartan-weaponry-278141:6839689')
         runtimeOnly rfg.deobf('curse.maven:quality-tools-264756:2732994')

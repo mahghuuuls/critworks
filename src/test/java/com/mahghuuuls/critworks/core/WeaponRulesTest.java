@@ -181,4 +181,65 @@ class WeaponRulesTest {
         WeaponRule stickChance = new WeaponRule(1, net.minecraft.init.Items.STICK, null, null, null, 40.0D, null);
         assertEquals(1, WeaponRules.rulesWithoutEffect(Arrays.asList(stickChance), WeaponClassifier::isRecognizedItem).size());
     }
+
+    /** A type that matches one item class, as a Spartan type does. */
+    private static ItemType type(String name, Class<? extends Item> itemClass) {
+        return new ItemType() {
+            @Override
+            public String name() {
+                return name;
+            }
+
+            @Override
+            public String describe() {
+                return "spartan type " + name;
+            }
+
+            @Override
+            public boolean matches(Item item) {
+                return itemClass.isInstance(item);
+            }
+        };
+    }
+
+    /** Stands in for two Spartan daggers of one type. */
+    public static final class Dagger extends net.minecraft.item.ItemSword {
+        public Dagger() {
+            super(Item.ToolMaterial.IRON);
+        }
+    }
+
+    @Test
+    void aTypeRuleCoversEveryItemOfTheTypeAndAnIdRuleWinsForItsItem() {
+        Dagger iron = new Dagger();
+        Dagger netherite = new Dagger();
+        iron.setRegistryName("spartanweaponry:dagger_iron");
+        netherite.setRegistryName("spartanetherite:dagger_netherite");
+        ItemType dagger = type("dagger", Dagger.class);
+        WeaponRule typeRule = WeaponRule.forType(0, dagger, null, 25.0D, null);
+        WeaponRule idRule = new WeaponRule(1, iron, null, null, null, 10.0D, null);
+        WeaponRules all = rules(typeRule, idRule);
+        assertEquals(0, warnings.size());
+        assertSame(idRule, all.match(new ItemStack(iron)).chance, "REQ-086: the id rule wins for the iron dagger");
+        assertSame(typeRule, all.match(new ItemStack(netherite)).chance, "the netherite dagger keeps the type rule");
+        assertNull(all.match(new ItemStack(sword)).chance, "a sword of another type gets nothing");
+        assertEquals("pack rule #1 (spartan type dagger)", typeRule.describe());
+        assertEquals(0, typeRule.specificity());
+    }
+
+    @Test
+    void twoRulesForOneTypeWarnAndRulesForDifferentTypesDoNot() {
+        rules(WeaponRule.forType(0, type("dagger", Dagger.class), null, 25.0D, null),
+                WeaponRule.forType(1, type("rapier", Dagger.class), null, 30.0D, null));
+        assertEquals(0, warnings.size());
+        rules(WeaponRule.forType(0, type("dagger", Dagger.class), null, 25.0D, null),
+                WeaponRule.forType(1, type("dagger", Dagger.class), null, 30.0D, null));
+        assertEquals(1, warnings.size());
+    }
+
+    @Test
+    void aTypeRuleIsNeverReportedAsWithoutEffect() {
+        WeaponRule typeRule = WeaponRule.forType(0, type("dagger", Dagger.class), null, 25.0D, null);
+        assertEquals(0, WeaponRules.rulesWithoutEffect(Arrays.asList(typeRule), item -> false).size());
+    }
 }

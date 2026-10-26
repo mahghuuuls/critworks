@@ -85,6 +85,26 @@ class WeaponBonusProvidersTest {
     }
 
     @Test
+    void aProviderThatFailsOnlyForTooltipsStillCountsForAttacks() {
+        WeaponBonusProviders providers = new WeaponBonusProviders(warnings::add);
+        ItemStack tooltipStack = new ItemStack(Items.IRON_SWORD);
+        providers.register((player, stack) -> {
+            if (stack == tooltipStack) {
+                throw new IllegalStateException("client only");
+            }
+            return Collections.singletonList(new WeaponBonus(CritStat.INCREASED_CHANCE, 5.0D, "test:sword"));
+        }, "flaky");
+        BonusCollector attacks = collector(providers);
+        BonusCollector tooltips = attacks.forClient(modifier -> modifier.getName());
+        assertTrue(tooltips.collect(null, tooltipStack, EnumHand.MAIN_HAND).isEmpty());
+        assertTrue(tooltips.collect(null, new ItemStack(Items.IRON_SWORD), EnumHand.MAIN_HAND).isEmpty(),
+                "the tooltip side skips the provider after its failure");
+        assertEquals(1, attacks.collect(null, new ItemStack(Items.IRON_SWORD), EnumHand.MAIN_HAND).size(),
+                "attacks still ask the provider");
+        assertEquals(1, warnings.size());
+    }
+
+    @Test
     void aBonusThatIsNotAFiniteNumberIsLeftOut() {
         WeaponBonusProviders providers = new WeaponBonusProviders(warnings::add);
         providers.register((player, stack) -> Collections.singletonList(

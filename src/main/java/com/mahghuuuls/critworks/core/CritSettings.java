@@ -18,7 +18,7 @@ public final class CritSettings {
         RLCOMBAT("rlcombat", "RLCombat main-hand and offhand attacks"),
         JAFS("jafs", "Just Another Food System crit properties"),
         QUARK("quark", "Quark Visual Stat Display icon row in tooltips"),
-        SPARTAN_WEAPONRY("spartanweaponry", "Spartan Weaponry weapon-type rules"),
+        SPARTAN_WEAPONRY("spartanweaponry", "Spartan Weaponry weapon-type rules and the longbow's own draw time"),
         QUALITY_TOOLS("qualitytools", "Quality Tools qualities counted only for their own weapon");
 
         private final String key;
@@ -110,5 +110,15 @@ public final class CritSettings {
 
     public boolean isIntegrationEnabled(Integration integration) {
         return integrations[integration.ordinal()];
+    }
+
+    /** As {@link #isIntegrationEnabled(Integration)} by setting key; an unknown key is on. */
+    public boolean isIntegrationEnabled(String key) {
+        for (Integration integration : Integration.values()) {
+            if (integration.getKey().equals(key)) {
+                return isIntegrationEnabled(integration);
+            }
+        }
+        return true;
     }
 }
