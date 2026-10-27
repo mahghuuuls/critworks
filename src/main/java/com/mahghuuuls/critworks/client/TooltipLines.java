@@ -1,5 +1,6 @@
 package com.mahghuuuls.critworks.client;
 
+import com.mahghuuuls.critworks.api.CritStat;
 import com.mahghuuuls.critworks.bonus.Bonus;
 import com.mahghuuuls.critworks.core.CritProfile;
 import net.minecraft.util.text.TextFormatting;
@@ -12,7 +13,7 @@ import java.util.Locale;
 /**
  * The Critworks tooltip text for one resolved profile: one line with the base chance and multiplier
  * (REQ-092), and with Shift the effective values labeled as a current preview, with each bonus and its
- * source (REQ-093). Text only; it reads the profile and nothing else.
+ * source, each value with its unit (REQ-093). Text only; it reads the profile and nothing else.
  */
 final class TooltipLines {
 
@@ -42,7 +43,7 @@ final class TooltipLines {
             String source = UNNAMED_SYNCED_MODIFIER.equals(bonus.getSource())
                     ? translator.format("critworks.tooltip.unknown_source") : bonus.getSource();
             lines.add(TextFormatting.DARK_GRAY + " " + translator.format("critworks.tooltip.bonus",
-                    signed(bonus.getAmount()), translator.format("attribute.name." + bonus.getStat().getAttributeName()),
+                    bonusValue(bonus), translator.format("attribute.name." + bonus.getStat().getAttributeName()),
                     source));
         }
         return lines;
@@ -55,6 +56,12 @@ final class TooltipLines {
 
     static String multiplier(double value) {
         return String.format(Locale.ROOT, "x%.2f", value);
+    }
+
+    /** The bonus amount with its unit, value first: "%" for every stat but additional damage, which is in multiplier units. */
+    static String bonusValue(Bonus bonus) {
+        String value = signed(bonus.getAmount());
+        return bonus.getStat() == CritStat.ADDITIONAL_DAMAGE ? value : value + "%";
     }
 
     static String signed(double value) {

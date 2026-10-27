@@ -50,8 +50,8 @@ class SettingsReaderTest {
         File file = folder.resolve("critworks.cfg").toFile();
         CritSettings settings = read(file);
         assertTrue(file.exists());
-        assertEquals(5.0D, settings.getFallbackChance());
-        assertEquals(1.5D, settings.getFallbackMultiplier());
+        assertEquals(15.0D, settings.getFallbackChance());
+        assertEquals(2.0D, settings.getFallbackMultiplier());
         assertEquals(100.0D, settings.getMeleeChargeThreshold());
         assertEquals(100.0D, settings.getBowChargeThreshold());
         assertEquals(CritFormula.NO_CAP, settings.getDamageCap());
@@ -88,6 +88,8 @@ class SettingsReaderTest {
         }
         assertTrue(text.contains("Range: 0 to 100"));
         assertTrue(text.contains("Restart") || text.contains("restart"));
+        assertTrue(text.contains("Range: 0 to 100. Default: 15."), "the fallback chance comment states the shipped default");
+        assertTrue(text.contains("2.0 means x2.00. Minimum: 1.0. Default: 2.0."), "the fallback damage comment states the shipped default");
     }
 
     @Test
@@ -107,7 +109,7 @@ class SettingsReaderTest {
         assertTrue(file.exists());
         assertArrayEquals(before, Files.readAllBytes(file.toPath()));
         assertEquals(1, folder.toFile().list().length);
-        assertEquals(1.5D, settings.getFallbackMultiplier());
+        assertEquals(2.0D, settings.getFallbackMultiplier());
         assertEquals(1, warnings.size());
         assertTrue(warnings.get(0).contains("could not be parsed"), warnings.get(0));
     }
@@ -116,7 +118,7 @@ class SettingsReaderTest {
     void eachBadValueGivesOneWarningAndTheDefault() throws Exception {
         CritSettings settings = read(write("    S:fallbackChance=abc\n    S:meleeChargeThreshold=150\n"
                 + "    S:diagnosticMode=maybe"));
-        assertEquals(5.0D, settings.getFallbackChance());
+        assertEquals(15.0D, settings.getFallbackChance());
         assertEquals(100.0D, settings.getMeleeChargeThreshold());
         assertFalse(settings.isDiagnosticMode());
         assertEquals(3, warnings.size());

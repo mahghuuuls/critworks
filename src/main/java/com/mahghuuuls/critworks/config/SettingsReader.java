@@ -84,11 +84,11 @@ public final class SettingsReader {
         double fallbackChance = readNumber(config, file, GENERAL, "fallbackChance", defaults.getFallbackChance(),
                 CritFormula.MIN_CHANCE, CritFormula.MAX_CHANCE,
                 "Critical chance, in percent, of an eligible weapon that has no pack rule and no addon default.\n"
-                        + "Range: 0 to 100. Default: 5.");
+                        + "Range: 0 to 100. Default: 15.");
         double fallbackMultiplier = readNumber(config, file, GENERAL, "fallbackDamage", defaults.getFallbackMultiplier(),
                 CritFormula.MIN_MULTIPLIER, Double.MAX_VALUE,
                 "Critical damage multiplier of an eligible weapon that has no pack rule and no addon default.\n"
-                        + "1.5 means x1.50. Minimum: 1.0. Default: 1.5.");
+                        + "2.0 means x2.00. Minimum: 1.0. Default: 2.0.");
         double meleeThreshold = readNumber(config, file, GENERAL, "meleeChargeThreshold",
                 defaults.getMeleeChargeThreshold(), 0.0D, 100.0D,
                 "Minimum attack cooldown recovery, in percent, for a melee attack to be able to crit.\n"

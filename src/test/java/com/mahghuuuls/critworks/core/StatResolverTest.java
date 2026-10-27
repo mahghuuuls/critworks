@@ -36,8 +36,8 @@ class StatResolverTest {
     void swordUsesTheFallbackWithNoRules() {
         CritProfile profile = resolve(resolver(), new ItemStack(Items.IRON_SWORD));
         assertTrue(profile.isEligible());
-        assertEquals(5.0D, profile.getFinalChance());
-        assertEquals(1.5D, profile.getFinalMultiplier());
+        assertEquals(15.0D, profile.getFinalChance());
+        assertEquals(2.0D, profile.getFinalMultiplier());
         assertEquals(StatResolver.SOURCE_FALLBACK, profile.getBaseChanceSource());
         assertEquals(StatResolver.SOURCE_RECOGNIZED, profile.getEligibilitySource());
     }
@@ -54,7 +54,7 @@ class StatResolverTest {
                 new ItemStack(Items.STICK));
         assertTrue(profile.isEligible());
         assertEquals(50.0D, profile.getFinalChance());
-        assertEquals(1.5D, profile.getFinalMultiplier());
+        assertEquals(2.0D, profile.getFinalMultiplier());
         assertEquals(StatResolver.SOURCE_FALLBACK, profile.getBaseMultiplierSource());
         assertTrue(profile.getEligibilitySource().startsWith("pack rule #1"));
     }
@@ -78,7 +78,7 @@ class StatResolverTest {
         CritProfile profile = resolve(resolver(new WeaponRule(0, Items.IRON_SWORD, null, null, null, 8.0D, null)),
                 new ItemStack(Items.IRON_SWORD));
         assertEquals(8.0D, profile.getBaseChance());
-        assertEquals(1.5D, profile.getBaseMultiplier());
+        assertEquals(2.0D, profile.getBaseMultiplier());
         assertEquals(StatResolver.SOURCE_FALLBACK, profile.getBaseMultiplierSource());
     }
 

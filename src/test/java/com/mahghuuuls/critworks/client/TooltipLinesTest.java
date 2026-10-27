@@ -78,7 +78,7 @@ class TooltipLinesTest {
     void ironSwordWithTheDefaultConfigShowsOneLine() {
         CritProfile profile = resolver(new WeaponBonusProviders(s -> { }))
                 .resolve(null, new ItemStack(Items.IRON_SWORD), EnumHand.MAIN_HAND);
-        assertEquals(Collections.singletonList("Crit: 5% | x1.50"),
+        assertEquals(Collections.singletonList("Crit: 15% | x2.00"),
                 plain(TooltipLines.lines(profile, false, TooltipLinesTest::format)));
     }
 
@@ -95,7 +95,7 @@ class TooltipLinesTest {
         CritProfile profile = CritProfile.eligible("recognized weapon", 5.0D, "fallback", 1.5D, "fallback", 15.0D, 1.5D,
                 CritFormula.NO_CAP, Collections.singletonList(new Bonus(CritStat.ADDITIONAL_CHANCE, 10.0D, "JAFS")));
         assertEquals(Arrays.asList("Crit: 5% | x1.50", "Current preview, not for arrows already fired:",
-                " Effective: 15% | x1.50", " +10 Additional Crit Chance (JAFS)"),
+                " Effective: 15% | x1.50", " +10% Additional Crit Chance (JAFS)"),
                 plain(TooltipLines.lines(profile, true, TooltipLinesTest::format)));
     }
 
@@ -104,7 +104,7 @@ class TooltipLinesTest {
         CritProfile profile = CritProfile.eligible("recognized weapon", 5.0D, "fallback", 1.5D, "fallback", 5.5D, 1.5D,
                 CritFormula.NO_CAP, Collections.singletonList(
                         new Bonus(CritStat.INCREASED_CHANCE, 10.0D, TooltipLines.UNNAMED_SYNCED_MODIFIER)));
-        assertEquals(" +10 Increased Crit Chance (unknown source)",
+        assertEquals(" +10% Increased Crit Chance (unknown source)",
                 plain(TooltipLines.lines(profile, true, TooltipLinesTest::format)).get(3));
     }
 
@@ -126,9 +126,35 @@ class TooltipLinesTest {
                 resolver.resolve(null, new ItemStack(Items.IRON_SWORD), EnumHand.MAIN_HAND), true, TooltipLinesTest::format));
         List<String> bow = plain(TooltipLines.lines(
                 resolver.resolve(null, new ItemStack(Items.BOW), EnumHand.MAIN_HAND), true, TooltipLinesTest::format));
-        assertEquals(" +20 Increased Crit Chance (Sword Bonus)", sword.get(3));
-        assertEquals(" Effective: 5% | x1.50", bow.get(2));
+        assertEquals(" +20% Increased Crit Chance (Sword Bonus)", sword.get(3));
+        assertEquals(" Effective: 15% | x2.00", bow.get(2));
         assertEquals(" No bonuses", bow.get(3));
+    }
+
+    @Test
+    void aTenPointBonusOnTheDefaultFallbackShowsTwentyFivePercent() {
+        WeaponBonusProviders providers = new WeaponBonusProviders(s -> { });
+        providers.register((player, stack) -> Collections.singletonList(
+                new WeaponBonus(CritStat.ADDITIONAL_CHANCE, 10.0D, "JAFS")), "test");
+        List<String> lines = plain(TooltipLines.lines(resolver(providers)
+                .resolve(null, new ItemStack(Items.IRON_SWORD), EnumHand.MAIN_HAND), true, TooltipLinesTest::format));
+        assertEquals(Arrays.asList("Crit: 15% | x2.00", "Current preview, not for arrows already fired:",
+                " Effective: 25% | x2.00", " +10% Additional Crit Chance (JAFS)"), lines);
+    }
+
+    @Test
+    void eachBonusShowsItsUnitAfterTheValue() {
+        CritProfile profile = CritProfile.eligible("recognized weapon", 15.0D, "fallback", 2.0D, "fallback", 25.0D, 3.5D,
+                CritFormula.NO_CAP, Arrays.asList(
+                        new Bonus(CritStat.INCREASED_CHANCE, 50.0D, "JAFS"),
+                        new Bonus(CritStat.ADDITIONAL_CHANCE, 10.0D, "qualitytools"),
+                        new Bonus(CritStat.INCREASED_DAMAGE, 100.0D, "setworks 1"),
+                        new Bonus(CritStat.ADDITIONAL_DAMAGE, 0.5D, "JAFS"),
+                        new Bonus(CritStat.ADDITIONAL_DAMAGE, -0.25D, "curse")));
+        List<String> lines = plain(TooltipLines.lines(profile, true, TooltipLinesTest::format));
+        assertEquals(Arrays.asList(" +50% Increased Crit Chance (JAFS)", " +10% Additional Crit Chance (qualitytools)",
+                " +100% Increased Crit Damage (setworks 1)", " +0.5 Additional Crit Damage (JAFS)",
+                " -0.25 Additional Crit Damage (curse)"), lines.subList(3, 8));
     }
 
     @Test

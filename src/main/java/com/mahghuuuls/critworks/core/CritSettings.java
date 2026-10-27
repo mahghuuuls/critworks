@@ -6,8 +6,8 @@ package com.mahghuuuls.critworks.core;
  */
 public final class CritSettings {
 
-    public static final double DEFAULT_FALLBACK_CHANCE = 5.0D;
-    public static final double DEFAULT_FALLBACK_MULTIPLIER = 1.5D;
+    public static final double DEFAULT_FALLBACK_CHANCE = 15.0D;
+    public static final double DEFAULT_FALLBACK_MULTIPLIER = 2.0D;
     public static final double DEFAULT_MELEE_THRESHOLD = 100.0D;
     public static final double DEFAULT_BOW_THRESHOLD = 100.0D;
     public static final String SOUND_AUTO = "auto";
