@@ -25,8 +25,8 @@ import java.util.UUID;
 
 /**
  * The client's resolver: the server's settings and rules while connected (REQ-132), this client's own
- * config otherwise, and the synced bonus names. Every change runs on the client thread, where tooltips
- * read it. Public, because Forge's event wrapper for its disconnect listener can only reach public classes.
+ * config otherwise, and the synced bonus names. Every change runs on the client thread, where tooltips and
+ * client-side calls of the public API's resolve read it. Public, because Forge's event wrapper for its disconnect listener can only reach public classes.
  */
 @SideOnly(Side.CLIENT)
 public final class ClientStats implements CritworksNetwork.ClientReceiver {

@@ -105,9 +105,8 @@ public class CritworksMod {
         combat = CombatHandlers.create(resolver, settings, feedback, diagnostics, RLCombatAttacks.create(gate),
                 attackerPolicies, new SpartanLongbowDraw(gate, CombatHandlers.VANILLA_FULL_DRAW_TICKS));
         combat.register(MinecraftForge.EVENT_BUS);
-        api.ready(resolver, combat, settings.getDamageCap());
         MinecraftForge.EVENT_BUS.register(new ClientSyncSender(ConfigSyncMessage.of(settings, rules)));
-        proxy.postInit(settings, rules, bonusCollector, addonDefaults, LOGGER);
+        api.ready(resolver, proxy.postInit(settings, rules, bonusCollector, addonDefaults, LOGGER), combat);
         if (diagnostics.isEnabled()) {
             LOGGER.info("[diag] diagnostic mode on; crit sound {}; rlcombat integration {}; jafs integration {}; "
                     + "qualitytools integration {}; spartanweaponry integration {}", feedback.describeSound(),

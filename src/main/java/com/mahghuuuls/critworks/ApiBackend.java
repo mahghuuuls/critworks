@@ -35,6 +35,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 /** Connects the public API to the internal components, so the api package depends on nothing inside. */
 final class ApiBackend implements CritworksApi.Backend {
@@ -46,8 +47,8 @@ final class ApiBackend implements CritworksApi.Backend {
     private final Map<String, IAttackIntegration> integrations = new ConcurrentHashMap<String, IAttackIntegration>();
     private final AtomicBoolean warnedClientCall = new AtomicBoolean();
     private volatile StatResolver resolver;
+    private volatile Supplier<StatResolver> clientResolver;
     private volatile CombatHandlers combat;
-    private volatile double damageCap = Double.POSITIVE_INFINITY;
     private volatile boolean registrationClosed;
 
     ApiBackend(Logger logger, AddonDefaults defaults, WeaponBonusProviders providers, AttackerPolicies attackers) {
@@ -57,11 +58,15 @@ final class ApiBackend implements CritworksApi.Backend {
         this.attackers = attackers;
     }
 
-    /** Called in postInit, once the resolver and the combat handlers exist. */
-    void ready(StatResolver resolver, CombatHandlers combat, double damageCap) {
+    /**
+     * Called in postInit, once the resolvers and the combat handlers exist. {@code clientResolver} gives the
+     * resolver the client's tooltips use (the server's synced settings and rules while connected); it is
+     * null on a dedicated server.
+     */
+    void ready(StatResolver resolver, Supplier<StatResolver> clientResolver, CombatHandlers combat) {
         this.resolver = resolver;
+        this.clientResolver = clientResolver;
         this.combat = combat;
-        this.damageCap = damageCap;
     }
 
     /** Called when loading completes, after every mod's post-initialization. */
@@ -162,10 +167,12 @@ final class ApiBackend implements CritworksApi.Backend {
 
     @Override
     public CritStats resolve(EntityPlayer player, ItemStack stack, EnumHand hand) {
-        StatResolver current = resolver;
-        if (current == null) {
-            throw new IllegalStateException("Critworks API resolve used before Critworks finished loading");
-        }
+        return resolve(player.world.isRemote, player, stack, hand);
+    }
+
+    /** Resolves for a call on the client ({@code remote}) or on the server. */
+    CritStats resolve(boolean remote, EntityPlayer player, ItemStack stack, EnumHand hand) {
+        StatResolver current = resolverFor(remote);
         CritProfile profile = current.resolve(player, stack, hand);
         List<WeaponBonus> bonuses = new ArrayList<WeaponBonus>();
         for (Bonus bonus : profile.getBonuses()) {
@@ -174,7 +181,20 @@ final class ApiBackend implements CritworksApi.Backend {
         String eligibility = profile.isEligible() ? profile.getEligibilitySource() : profile.getIneligibleReason();
         return new CritStats(profile.isEligible(), eligibility, profile.getBaseChance(), profile.getBaseChanceSource(),
                 profile.getBaseMultiplier(), profile.getBaseMultiplierSource(), profile.getFinalChance(),
-                profile.getFinalMultiplier(), profile.isEligible() ? profile.getCap() : damageCap, bonuses);
+                profile.getFinalMultiplier(), profile.isEligible() ? profile.getCap() : current.getDamageCap(), bonuses);
+    }
+
+    /**
+     * The resolver for a call on the client ({@code remote}) or the server: on the client the one its
+     * tooltips use, so an addon reads the same numbers the player sees.
+     */
+    StatResolver resolverFor(boolean remote) {
+        Supplier<StatResolver> client = clientResolver;
+        StatResolver current = remote && client != null ? client.get() : resolver;
+        if (current == null) {
+            throw new IllegalStateException("Critworks API resolve used before Critworks finished loading");
+        }
+        return current;
     }
 
     private CombatHandlers loaded() {

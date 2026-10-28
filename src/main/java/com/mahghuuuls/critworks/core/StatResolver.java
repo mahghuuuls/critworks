@@ -36,6 +36,11 @@ public final class StatResolver {
         this.defaults = defaults;
     }
 
+    /** The maximum multiplier of the settings this resolver uses, or {@link CritFormula#NO_CAP}. */
+    public double getDamageCap() {
+        return settings.getDamageCap();
+    }
+
     /** Resolves the stats for the stack's own attack kind (arrows for a bow, melee otherwise). */
     public CritProfile resolve(EntityPlayer player, ItemStack stack, EnumHand hand) {
         return resolve(player, stack, hand, AttackKind.naturalFor(stack));

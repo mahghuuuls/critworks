@@ -75,7 +75,10 @@ public final class CritStats {
         return finalMultiplier;
     }
 
-    /** The damage cap of the side that resolved the stats, or positive infinity when there is none. */
+    /**
+     * The damage cap the stats were resolved with (on a client connected to a server, the server's), or
+     * positive infinity when there is none.
+     */
     public double getDamageCap() {
         return damageCap;
     }

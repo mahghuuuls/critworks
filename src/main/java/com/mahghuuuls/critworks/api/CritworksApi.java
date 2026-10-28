@@ -167,7 +167,10 @@ public final class CritworksApi {
 
     /**
      * Resolves the stats an attack of the player with the stack in that hand would use now. Works on both
-     * sides once Critworks has finished loading; changes nothing and uses no guarantee.
+     * sides once Critworks has finished loading; changes nothing and uses no guarantee. On the client it uses
+     * what the client's tooltips use: the server's settings and rules while connected to a server (the
+     * client's own before they arrive or when they cannot be read). On the client, call it from the client
+     * thread, where those values change.
      */
     public static CritStats resolve(EntityPlayer player, ItemStack stack, EnumHand hand) {
         requirePlayer(player);
