@@ -62,7 +62,7 @@ public final class StatResolver {
             return CritProfile.notEligible(REASON_NOT_A_WEAPON);
         }
 
-        AddonDefaults.Match addon = defaults.match(stack);
+        AddonDefaults.Match addon = defaults.match(stack, settings::isIntegrationEnabled);
         double baseChance = settings.getFallbackChance();
         String chanceSource = SOURCE_FALLBACK;
         if (match.chance != null) {

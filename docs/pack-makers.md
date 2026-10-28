@@ -336,6 +336,8 @@ With the full set worn, every attack of the player gets +10 percentage points of
 With Spartan Weaponry installed and the `spartanweaponry` switch on:
 
 - Every Spartan melee weapon is a sword by item type, and the longbow is a bow, so all of them can crit with no config.
+- Each type has built-in base stats (the table below). Light weapons crit more often for less damage, heavy weapons less often for more; every row gives the same average gain per hit as the shipped fallback (15% at x2.00).
+- The built-in values are addon defaults: a `spartan_type` or `item` rule wins per stat, and so does another mod's own default for the item. They do not follow a changed `fallbackChance` or `fallbackDamage`. Inspection names them, for example, "addon default from spartan type dagger".
 - A `spartan_type` rule in `weapons.json` applies to every item of that type, from Spartan Weaponry or from an addon that makes weapons through its API.
 - An `item` rule that matches the same stack wins over a type rule.
 - Without Spartan Weaponry, or with the switch off, type rules are skipped with one warning. The other rules load.
@@ -343,6 +345,20 @@ With Spartan Weaponry installed and the `spartanweaponry` switch on:
 - Inspection names a type rule as, for example, "pack rule #6 (spartan type dagger)".
 
 Type names: `dagger`, `parrying_dagger`, `longsword`, `katana`, `saber`, `rapier`, `greatsword`, `hammer`, `warhammer`, `spear`, `halberd`, `pike`, `lance`, `glaive`, `quarterstaff`, `scythe`, `battleaxe`, `mace`, `club`, `caestus`, `longbow`.
+
+Built-in values (chance in percent, damage as a multiplier):
+
+| Types | Chance | Damage |
+| --- | --- | --- |
+| `dagger`, `caestus` | 30 | x1.50 |
+| `rapier` | 25 | x1.60 |
+| `parrying_dagger`, `saber`, `katana`, `quarterstaff` | 20 | x1.75 |
+| `longsword`, `spear`, `mace`, `club` | 15 | x2.00 |
+| `halberd`, `glaive`, `pike` | 12 | x2.25 |
+| `greatsword`, `battleaxe`, `hammer`, `warhammer`, `scythe`, `lance` | 10 | x2.50 |
+| `longbow` | 10 | x2.50 |
+
+Example: a rule `{ "spartan_type": "dagger", "chance": 25 }` gives daggers 25% from the rule and keeps x1.50 from the built-in value.
 
 Crossbows and throwing weapons have no type name: their attacks are not supported.
 

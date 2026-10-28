@@ -43,7 +43,16 @@ public final class AddonDefaults {
     }
 
     public void register(Item item, Predicate<ItemStack> stacks, Double chance, Double damage, String source) {
-        Entry entry = new Entry(item, stacks, chance, damage, source);
+        register(item, stacks, chance, damage, source, null);
+    }
+
+    /**
+     * A default that counts only while the integration with this setting key is on in the settings the
+     * resolver uses (the server's, also on a connected client), or always when the key is null.
+     */
+    public void register(Item item, Predicate<ItemStack> stacks, Double chance, Double damage, String source,
+                         String integration) {
+        Entry entry = new Entry(item, stacks, chance, damage, source, integration);
         if (item != null) {
             itemDefaults.add(entry);
         } else {
@@ -51,8 +60,16 @@ public final class AddonDefaults {
         }
     }
 
-    /** The defaults that apply to a stack, per stat; a field is null when no default sets that stat. */
+    /** The defaults that apply to a stack, per stat, with every integration on. */
     public Match match(ItemStack stack) {
+        return match(stack, key -> true);
+    }
+
+    /**
+     * The defaults that apply to a stack, per stat; a field is null when no default sets that stat. A default
+     * tied to an integration counts only while {@code integrationOn} says that integration is on.
+     */
+    public Match match(ItemStack stack, Predicate<String> integrationOn) {
         Entry chance = null;
         Entry damage = null;
         if (stack.isEmpty()) {
@@ -61,6 +78,9 @@ public final class AddonDefaults {
         for (List<Entry> tier : itemDefaultsThenPredicates()) {
             for (Entry entry : tier) {
                 if ((chance != null || entry.chance == null) && (damage != null || entry.damage == null)) {
+                    continue;
+                }
+                if (entry.integration != null && !integrationOn.test(entry.integration)) {
                     continue;
                 }
                 if (!entry.matches(stack, broken, warn)) {
@@ -89,13 +109,15 @@ public final class AddonDefaults {
         private final Double chance;
         private final Double damage;
         private final String source;
+        private final String integration;
 
-        Entry(Item item, Predicate<ItemStack> stacks, Double chance, Double damage, String source) {
+        Entry(Item item, Predicate<ItemStack> stacks, Double chance, Double damage, String source, String integration) {
             this.item = item;
             this.stacks = stacks;
             this.chance = chance;
             this.damage = damage;
             this.source = source;
+            this.integration = integration;
         }
 
         boolean matches(ItemStack stack, Set<Entry> broken, Consumer<String> warn) {

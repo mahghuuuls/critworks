@@ -1,6 +1,7 @@
 package com.mahghuuuls.critworks;
 
 import com.mahghuuuls.critworks.integration.spartan.SpartanLongbowDraw;
+import com.mahghuuuls.critworks.integration.spartan.SpartanTypeDefaults;
 import com.mahghuuuls.critworks.integration.spartan.SpartanWeaponTypes;
 import com.mahghuuuls.critworks.api.CritworksApi;
 import com.mahghuuuls.critworks.bonus.BonusCollector;
@@ -120,6 +121,8 @@ public class CritworksMod {
     @Mod.EventHandler
     public void loadComplete(FMLLoadCompleteEvent event) {
         // Every mod's post-initialization is done: addon defaults, providers, policies, and integrations are final.
+        // The built-in Spartan type values come last, so every addon's own default wins over them.
+        SpartanTypeDefaults.register(gate, addonDefaults);
         api.closeRegistration();
     }
 

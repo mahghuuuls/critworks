@@ -120,6 +120,7 @@ CritworksApi.registerItemDefaults(Predicate<ItemStack> stacks, Double chance, Do
 - A default does not make an item eligible. Swords, axes, and bows are eligible by type; other items become eligible only through a pack rule.
 - When several defaults set the same stat for a stack, item defaults win over predicate defaults, and within each kind the first registered wins.
 - The source shown by inspection is "addon default from " and your mod id.
+- Critworks registers its own Spartan Weaponry type values in this tier after every mod has loaded, so your default for a Spartan item wins over them.
 - A predicate that throws is reported once and then skipped.
 - Register on both sides (see [Sides and threads](#sides-and-threads)).
 
