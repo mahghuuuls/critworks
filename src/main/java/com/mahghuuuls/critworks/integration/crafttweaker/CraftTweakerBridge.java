@@ -21,7 +21,8 @@ public final class CraftTweakerBridge {
 
     private final IntegrationGate gate;
 
-    private CraftTweakerBridge(IntegrationGate gate) {
+    /** Package-private so tests can build one without the event bus; game code goes through {@link #register}. */
+    CraftTweakerBridge(IntegrationGate gate) {
         this.gate = gate;
     }
 
