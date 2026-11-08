@@ -19,6 +19,7 @@ import com.mahghuuuls.critworks.core.StatResolver;
 import com.mahghuuuls.critworks.core.WeaponRules;
 import com.mahghuuuls.critworks.diagnostics.DiagnosticLog;
 import com.mahghuuuls.critworks.integration.IntegrationGate;
+import com.mahghuuuls.critworks.integration.crafttweaker.CraftTweakerBridge;
 import com.mahghuuuls.critworks.integration.jafs.JafsBonusCleanup;
 import com.mahghuuuls.critworks.integration.jafs.JafsCritProperties;
 import com.mahghuuuls.critworks.integration.qualitytools.QualityToolsBonuses;
@@ -47,7 +48,7 @@ import java.io.File;
         name = Tags.MOD_NAME,
         version = Tags.VERSION,
         acceptedMinecraftVersions = "[1.12.2]",
-        dependencies = "required-after:forge@[14.23.5.2847,);after:jafs@[1.0.0,);after:bettercombatmod;after:quark;after:spartanweaponry;after:qualitytools")
+        dependencies = "required-after:forge@[14.23.5.2847,);after:jafs@[1.0.0,);after:bettercombatmod;after:quark;after:spartanweaponry;after:qualitytools;after:crafttweaker@[4.1.20,)")
 public class CritworksMod {
 
     public static final Logger LOGGER = LogManager.getLogger(Tags.MOD_NAME);
@@ -106,15 +107,19 @@ public class CritworksMod {
         combat = CombatHandlers.create(resolver, settings, feedback, diagnostics, RLCombatAttacks.create(gate),
                 attackerPolicies, new SpartanLongbowDraw(gate, CombatHandlers.VANILLA_FULL_DRAW_TICKS));
         combat.register(MinecraftForge.EVENT_BUS);
+        // The script bridge links CraftTweaker classes, so it is only touched when CraftTweaker is loaded.
+        if (gate.isLoaded(CritSettings.Integration.CRAFTTWEAKER)) {
+            CraftTweakerBridge.register(gate, LOGGER::info);
+        }
         MinecraftForge.EVENT_BUS.register(new ClientSyncSender(ConfigSyncMessage.of(settings, rules)));
         api.ready(resolver, proxy.postInit(settings, rules, bonusCollector, addonDefaults, LOGGER), combat);
         if (diagnostics.isEnabled()) {
-            LOGGER.info("[diag] diagnostic mode on; crit sound {}; rlcombat integration {}; jafs integration {}; "
-                    + "qualitytools integration {}; spartanweaponry integration {}", feedback.describeSound(),
-                    gate.isOn(CritSettings.Integration.RLCOMBAT) ? "on" : "off",
-                    gate.isOn(CritSettings.Integration.JAFS) ? "on" : "off",
-                    gate.isOn(CritSettings.Integration.QUALITY_TOOLS) ? "on" : "off",
-                    gate.isOn(CritSettings.Integration.SPARTAN_WEAPONRY) ? "on" : "off");
+            StringBuilder line = new StringBuilder("[diag] diagnostic mode on; crit sound ").append(feedback.describeSound());
+            for (CritSettings.Integration integration : CritSettings.Integration.values()) {
+                line.append("; ").append(integration.getKey()).append(" integration ")
+                        .append(gate.isOn(integration) ? "on" : "off");
+            }
+            LOGGER.info(line.toString());
         }
     }
 

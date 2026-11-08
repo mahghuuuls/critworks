@@ -43,6 +43,8 @@ public final class IntegrationGate {
                 return "spartanweaponry";
             case QUALITY_TOOLS:
                 return "qualitytools";
+            case CRAFTTWEAKER:
+                return "crafttweaker";
             default:
                 throw new IllegalArgumentException(String.valueOf(integration));
         }

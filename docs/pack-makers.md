@@ -102,6 +102,9 @@ Section `integrations`. Each integration turns on by itself when its mod is inst
 | `quark` | Quark Visual Stat Display icon row in tooltips | `true` |
 | `spartanweaponry` | Spartan Weaponry weapon-type rules and the longbow's own draw time | `true` |
 | `qualitytools` | Quality Tools qualities counted only for their own weapon | `true` |
+| `crafttweaker` | CraftTweaker scripts: the crit event and the player calls that change crit state | `true` |
+
+A `critworks.cfg` created by an earlier version does not gain a new key, since Critworks never saves over an existing file. A missing key uses its default, so the CraftTweaker integration is on. To turn it off, add `S:crafttweaker=false` inside `integrations { }`.
 
 If an integration fails while the game runs, it turns off for the session with one warning. Core crits keep working.
 
@@ -331,6 +334,113 @@ Setworks.fullSetBonus("mypack:iron_focus", "mypack:iron_armor", "Iron Focus: +10
 
 With the full set worn, every attack of the player gets +10 percentage points of additional chance.
 
+## CraftTweaker
+
+With CraftTweaker 4.1.20 or newer installed and the `crafttweaker` switch on, scripts can react to critical hits and change a player's crit state. Put the scripts in the normal `scripts/` folder; they need no `#loader` line. CraftTweaker 1.12 has no script reload: a script change needs a restart, like the config.
+
+### The crit event
+
+```zenscript
+events.onCritworksHit(function(event as mods.critworks.CritHitEvent) {
+    print("crit: " + event.kind);
+});
+```
+
+`mods.critworks.Events.onHit(function(event as mods.critworks.CritHitEvent) {...})` does the same.
+
+The handler runs on the server once for every target that a critical attack hits successfully, the same moment as the Java critical-hit event, normally after the Java handlers. It also runs for a crit at x1.00.
+
+| Field | Value |
+| --- | --- |
+| `event.attacker` | The attacker, or null when it is unknown (an arrow whose shooter is gone) |
+| `event.player` | The attacker as a player, or null when the attacker is not a player |
+| `event.target` | The target |
+| `event.weapon` | A copy of the melee weapon or the bow, or null when there was none |
+| `event.hand` | `"main"` or `"off"` |
+| `event.kind` | `"melee"`, `"sweep"`, `"arrow"`, or `"integration"` |
+| `event.multiplier` | The final damage multiplier the hit used, 1.0 or more |
+| `event.guaranteed` | True when a guarantee made the attack critical, false when the roll did |
+| `event.damage` | Health lost (at most the health the target had) plus absorption hearts lost, in health points |
+| `event.depth` | 1 for the attack's own hit; higher for hits that a Java addon allowed to chain |
+
+- A script cannot cancel or change the hit.
+- Damage a handler deals while the event runs cannot crit and starts no new event, unless a Java addon allowed a chain on that hit.
+- A handler that throws an error is logged to `crafttweaker.log`; the hit and the other handlers go on.
+- With the `crafttweaker` switch off, the handler never runs.
+
+### Player calls
+
+| Call | Does |
+| --- | --- |
+| `player.grantCritGuarantee(id)` | Gives a guarantee (a free crit): the next eligible attack is critical. No time limit; removed by death |
+| `player.grantCritGuarantee(id, ticks)` | The same, lasting that many online ticks (20 per second). `0` means no time limit |
+| `player.grantCritGuarantee(id, ticks, true)` | The same, and kept when the player dies |
+| `player.removeCritGuarantee(id)` | Removes it; true when one was pending |
+| `player.critGuarantees` | The pending guarantee ids, in the order they will be used. Reads the server's state; empty on the client |
+| `player.setCritBonus(source, stat, amount)` | Sets a global crit bonus. The same source and stat again replaces the amount; `0` removes it |
+| `player.removeCritBonus(source, stat)` | Removes that bonus |
+| `player.blockNextCrit()` | The player's next attack cannot crit, whatever its chance or guarantees. The next attack uses it up, even a punch |
+| `player.getCritChance(item)`, `player.getCritChance(item, "off")` | The final chance in percent an attack with that item in that hand would use now |
+| `player.getCritMultiplier(item)`, `player.getCritMultiplier(item, "off")` | The final damage multiplier the same attack would use now |
+
+- `stat` is one of the four attribute names: `critworks.increasedCritChance`, `critworks.additionalCritChance`, `critworks.increasedCritDamage`, `critworks.additionalCritDamage`. `amount` is in that stat's own unit (see Units).
+- Guarantees follow the rules under Guarantees. A script bonus is a global bonus with `source` as its source, the same as an addon's: inspection and the Shift tooltip show it.
+- Minecraft does not keep a script bonus after death or after leaving the End. The script decides when it starts and ends, including then.
+- Calls that change a player work on the server. On the client they do nothing; the first such call in a game session writes one warning to the game log. Check `player.world.remote` in events that also run on the client.
+- A mistake in a call, such as an unknown stat name, an empty id or source, negative ticks, a hand other than `"main"` or `"off"`, or an amount that is not a finite number, writes one error line to `crafttweaker.log` with the script file and line. The call does nothing, and a reading call answers 0 (`getCritChance`), 1 (`getCritMultiplier`), or an empty list (`critGuarantees`); the rest of the script runs. The same mistake (the same call, script line, and message) is reported once until the game restarts, because CraftTweaker also shows script errors in chat to the players online.
+- With the `crafttweaker` switch off, the calls that change a player do nothing. `getCritChance`, `getCritMultiplier`, and `critGuarantees` still answer.
+
+### Examples
+
+A message to the player on each of their crits:
+
+```zenscript
+import mods.critworks.CritHitEvent;
+
+events.onCritworksHit(function(event as CritHitEvent) {
+    if (!isNull(event.player) && event.depth == 1) {
+        event.player.sendChat("Critical hit: " + event.damage + " damage at x" + event.multiplier);
+    }
+});
+```
+
+A free crit for 10 seconds after each kill:
+
+```zenscript
+import crafttweaker.event.EntityLivingDeathEvent;
+import crafttweaker.player.IPlayer;
+
+events.onEntityLivingDeath(function(event as EntityLivingDeathEvent) {
+    val killer = event.damageSource.trueSource;
+    if (killer instanceof IPlayer) {
+        val player as IPlayer = killer;
+        if (!player.world.remote) {
+            player.grantCritGuarantee("mypack:kill_streak", 200);
+        }
+    }
+});
+```
+
+A bonus that lasts as long as the Strength effect, checked once per second:
+
+```zenscript
+import crafttweaker.event.PlayerTickEvent;
+
+events.onPlayerTick(function(event as PlayerTickEvent) {
+    val player = event.player;
+    if (event.phase != "END" || player.world.remote || player.world.time % 20 != 0) {
+        return;
+    }
+    if (player.isPotionActive(<potion:minecraft:strength>)) {
+        player.setCritBonus("mypack:strength", "critworks.additionalCritChance", 10);
+    } else {
+        player.removeCritBonus("mypack:strength", "critworks.additionalCritChance");
+    }
+});
+```
+
+While Strength is active, every attack of the player gets +10 percentage points of additional chance; the bonus is gone at most one second after the effect ends.
+
 ## Spartan Weaponry
 
 With Spartan Weaponry installed and the `spartanweaponry` switch on:
@@ -508,6 +618,7 @@ Versions Critworks was checked with:
 | Quality Tools | 1.0.7 | optional |
 | Spartan Weaponry | 1.6.1 | optional |
 | Setworks | 1.0.0 | optional, checked against its source, no dependency |
+| CraftTweaker | 4.1.20 | optional, `after:crafttweaker@[4.1.20,)` |
 
 Other versions of these mods may work, but they were not checked. Critworks needs no other mod.
 

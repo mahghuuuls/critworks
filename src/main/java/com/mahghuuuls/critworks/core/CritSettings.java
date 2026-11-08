@@ -19,7 +19,8 @@ public final class CritSettings {
         JAFS("jafs", "Just Another Food System crit properties"),
         QUARK("quark", "Quark Visual Stat Display icon row in tooltips"),
         SPARTAN_WEAPONRY("spartanweaponry", "Spartan Weaponry weapon-type rules and the longbow's own draw time"),
-        QUALITY_TOOLS("qualitytools", "Quality Tools qualities counted only for their own weapon");
+        QUALITY_TOOLS("qualitytools", "Quality Tools qualities counted only for their own weapon"),
+        CRAFTTWEAKER("crafttweaker", "CraftTweaker scripts: the crit event and the player calls that change crit state");
 
         private final String key;
         private final String description;
