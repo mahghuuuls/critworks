@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.1.0
+
+### Added
+
+- CraftTweaker scripts (CraftTweaker 4.1.20 or newer): `events.onCritworksHit` (or `mods.critworks.Events.onHit`) runs on the server for each critical hit, with the attacker, player, target, weapon, hand, kind, multiplier, guarantee flag, damage, and depth.
+- Player calls for scripts: `grantCritGuarantee`, `removeCritGuarantee`, `critGuarantees`, `setCritBonus`, `removeCritBonus`, `blockNextCrit`, `getCritChance`, and `getCritMultiplier`.
+- `config/critworks.cfg`: integration switch `crafttweaker` (default `true`).
+
+### Compatibility
+
+- CraftTweaker 4.1.20: a script bonus counts and shows like an addon's global bonus. A mistaken call does nothing and writes one error line to `crafttweaker.log` with the script file and line; the same mistake is reported once until the game restarts.
+
+### Upgrading
+
+- A `critworks.cfg` from 1.0.0 does not gain the `crafttweaker` key; a missing key means `true`. To turn scripts off, add `S:crafttweaker=false` under `integrations`.
+
 ## 1.0.0
 
 First release.

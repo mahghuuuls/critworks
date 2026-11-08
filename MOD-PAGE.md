@@ -1,4 +1,4 @@
-Critworks gives every sword, axe, and bow a critical chance and a critical damage multiplier. Each attack rolls once against its weapon's chance. A critical hit multiplies the damage. Jumping, falling, and a full bow draw no longer make a hit critical by themselves.
+Critworks gives every sword, axe, and bow a critical chance and a critical damage multiplier. Each attack rolls once against its weapon's chance. A critical hit multiplies the damage. Jumping, falling, and a full bow draw no longer make a hit critical by themselves. By default only a fully charged swing or a fully drawn bow can crit.
 
 <span style="color:#d6a100">**AI usage disclaimer:** This mod was developed with AI-agent assistance using [this agent workflow](https://github.com/mahghuuuls/minecraft-1.12.2-mod-agent-workflow). The project owner reviewed the work during development.</span>
 
@@ -10,7 +10,8 @@ Critworks gives every sword, axe, and bow a critical chance and a critical damag
 - **Sweeps and arrows:** one swing rolls once for every target it sweeps. An arrow keeps the result it rolled when it was fired.
 - **Sound:** a critical hit plays the vanilla crit sound, or RLCombat's crit sound when RLCombat is installed.
 - **Inspect command:** `/critworks inspect` (operators only) shows where each value of the held weapons comes from.
-- **Addon API:** other mods can set weapon values, give bonuses, grant guaranteed crits, and connect their own attacks.
+- **Scripts:** CraftTweaker scripts can react to crits and change a player's crits (see CraftTweaker below).
+- **Addon API:** other mods can set weapon values, give bonuses, grant guaranteed crits, connect their own attacks, and react to critical hits. See the [API guide](https://github.com/mahghuuuls/critworks/blob/main/docs/api.md).
 
 ## Crit stats
 
@@ -65,7 +66,7 @@ Changes need a restart. The full reference for pack makers is in the [pack maker
 
 ## Installation
 
-Install Critworks on the server and on every client.
+Install Critworks on the server and on every client. If CraftTweaker is installed, it must be version 4.1.20 or newer; Forge does not start with an older one.
 
 ## Integrations
 
@@ -157,6 +158,38 @@ Setworks.fullSetBonus("mypack:iron_focus", "mypack:iron_armor", "Iron Focus: +10
 ```
 
 With the full iron set worn, every attack of the player gets +10 percentage points of crit chance. The bonus ends when one piece comes off.
+
+### [CraftTweaker](https://www.curseforge.com/minecraft/mc-mods/crafttweaker)
+
+For pack makers: write CraftTweaker scripts that react to critical hits and change a player's crits. Needs CraftTweaker 4.1.20 or newer.
+
+- `events.onCritworksHit(...)` runs on the server once for each target a critical attack hits. The script gets the attacker, target, weapon, attack kind (melee, sweep, arrow, or integration), multiplier, and damage. It cannot cancel or change the hit.
+- `player.grantCritGuarantee(id, ticks)` gives a guarantee (a free crit): the player's next eligible attack is critical. If no attack uses it within `ticks` (20 per second), it expires.
+- `player.setCritBonus(source, stat, amount)` sets a bonus that counts for every attack of the player. The same source and stat again replaces the amount. `player.removeCritBonus(source, stat)` removes it. `stat` is one of the four attribute names (see Crit stats above). A bonus is lost when the player dies or leaves the End, so the script decides when to set it again.
+- `player.blockNextCrit()`: the player's next attack cannot crit, even with a guarantee. Any attack uses it up, even a punch.
+- `player.getCritChance(item)` and `player.getCritMultiplier(item)` return the chance and multiplier an attack with that item would use now.
+- Calls that change a player work only on the server.
+
+Example script in the `scripts` folder:
+
+```zenscript
+import crafttweaker.event.EntityLivingDeathEvent;
+import crafttweaker.player.IPlayer;
+
+events.onEntityLivingDeath(function(event as EntityLivingDeathEvent) {
+    val killer = event.damageSource.trueSource;
+    if (killer instanceof IPlayer) {
+        val player as IPlayer = killer;
+        if (!player.world.remote) {
+            player.grantCritGuarantee("mypack:kill_streak", 200);
+        }
+    }
+});
+```
+
+After each kill, the player's next eligible attack within 10 seconds is critical. Another kill replaces an unused free crit, so they do not stack.
+
+A mistake in a Critworks call is written to `crafttweaker.log` with the script line, and CraftTweaker shows it once in chat. The [pack maker guide](https://github.com/mahghuuuls/critworks/blob/main/docs/pack-makers.md#crafttweaker) lists every call and the event fields.
 
 ### [Quark](https://www.curseforge.com/minecraft/mc-mods/quark) and [Quark: RotN Edition](https://www.curseforge.com/minecraft/mc-mods/quark-rotn-edition)
 

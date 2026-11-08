@@ -1,9 +1,9 @@
 # Critworks
 
-Critworks is a critical strike system for Minecraft 1.12.2 Forge. Swords, axes, and bows get a critical chance and a critical damage multiplier. Players get four bonus attributes that armor, foods, set bonuses, and other mods can raise. Addons use a Java API to set defaults, give bonuses, grant guaranteed crits, and connect their own attacks.
+Critworks is a critical strike system for Minecraft 1.12.2 Forge. Swords, axes, and bows get a critical chance and a critical damage multiplier. Players get four bonus attributes that armor, foods, set bonuses, and other mods can raise. Addons use a Java API to set defaults, give bonuses, grant guaranteed crits, and connect their own attacks. Pack makers can do part of this with CraftTweaker scripts.
 
 - Player-facing description: [MOD-PAGE.md](MOD-PAGE.md)
-- Pack makers (config files, units, formulas, attributes, integrations): [docs/pack-makers.md](docs/pack-makers.md)
+- Pack makers (config files, units, formulas, attributes, integrations, CraftTweaker scripts): [docs/pack-makers.md](docs/pack-makers.md)
 - Addon authors (Java API): [docs/api.md](docs/api.md)
 - Release history: [CHANGELOG.md](CHANGELOG.md)
 - License: [MIT](LICENSE). Third-party notices: [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)
@@ -20,7 +20,7 @@ Critworks is a critical strike system for Minecraft 1.12.2 Forge. Swords, axes, 
 Config files are read once at start. Every change needs a restart.
 
 - `config/critworks.cfg`, section `general`: `fallbackChance` (15), `fallbackDamage` (2.0), `meleeChargeThreshold` (100), `bowChargeThreshold` (100), `damageCap` (0, no cap), `pvpCrits` (true), `critSound` (auto), `diagnosticMode` (false).
-- `config/critworks.cfg`, section `integrations`: `rlcombat`, `jafs`, `quark`, `spartanweaponry`, `qualitytools`, each `true` by default and active only when its mod is installed.
+- `config/critworks.cfg`, section `integrations`: `rlcombat`, `jafs`, `quark`, `spartanweaponry`, `qualitytools`, `crafttweaker`, each `true` by default and active only when its mod is installed. A `critworks.cfg` from an older version does not gain new keys; a missing key means `true`.
 - `config/critworks/weapons.json`: pack rules per item id (with optional metadata and item data) or per Spartan weapon type. They set eligibility, base chance, and base damage.
 - `config/critworks/weapons.examples.json`: a reference file, rewritten on every start and never read.
 - Player attributes: `critworks.increasedCritChance`, `critworks.additionalCritChance`, `critworks.increasedCritDamage`, `critworks.additionalCritDamage`. Only operation 0 (add) counts.
@@ -41,6 +41,7 @@ Every integration is optional and turns on by itself when its mod is installed. 
 | [Quality Tools](https://www.curseforge.com/minecraft/mc-mods/quality-tools) | 1.0.7 | |
 | [Spartan Weaponry](https://www.curseforge.com/minecraft/mc-mods/spartan-weaponry) | 1.6.1 | |
 | [Setworks](https://www.curseforge.com/minecraft/mc-mods/setworks) | 1.0.0 | no dependency |
+| [CraftTweaker](https://www.curseforge.com/minecraft/mc-mods/crafttweaker) | 4.1.20 | script crit event and player calls; minimum 4.1.20 |
 
 Other versions of these mods may work, but they were not checked.
 
